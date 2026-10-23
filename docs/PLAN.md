@@ -102,3 +102,6 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
 - [x] Simplified Snowflake to one dataset (Pomona OpenStreetMap, 95 places with hours) on
   2026-10-23; removed Overture, curated overlay, analytics, multi-region, and H3. Hybrid
   keyword + Cortex top-1 fallback matching verified with live calls.
+- [x] Matched the API's call LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS(json, address) on 2026-10-23;
+  geocoding uses OSM addresses in Snowflake (trial blocks external access). Verified the
+  exact call and error cases as LQ_APP_RO; dropped LOCAL_QUEST_DEV.

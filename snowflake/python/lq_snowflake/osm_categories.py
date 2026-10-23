@@ -11,6 +11,12 @@ EXCLUDED = {
         "school", "shelter", "social_facility", "telephone", "toilets",
         "vending_machine", "waste_basket",
     )
+} | {
+    # Trade services visit you; they are not places to go.
+    ("craft", v) for v in (
+        "builder", "carpenter", "electrician", "hvac", "locksmith", "painter", "plumber",
+        "roofer", "plasterer", "glaziery", "tiler", "gardener", "cleaning",
+    )
 }
 
 

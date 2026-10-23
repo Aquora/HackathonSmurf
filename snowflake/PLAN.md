@@ -14,14 +14,24 @@ the request/response shape, and the ranking rules.
 - **Matching:** keyword/synonym first. Cortex `AI_EMBED` is a fallback that uses
   only the top-1 closest category per interest. Measured on this data, the
   closest category was right for every probe, and ranks 2–5 were noise.
-- **Interface:** the backend calls `QUEST.GET_CANDIDATES(PARSE_JSON(?))` as role
+- **Interface:** the backend calls `LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS(PARSE_JSON(?), ?)` as role
   `LQ_APP_RO`, which can run only that procedure. Request values are bound, never
   concatenated into SQL.
 - **Budget:** validated but not used for filtering, because OSM has no prices.
 
+- **API call (2026-10-23):** the backend calls
+  `LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS(PARSE_JSON(<json>), <address>)` with
+  `desiredTime` (minutes), `desiredBudget` (dollars), `locationPreference`
+  (comma-separated), and `travelMethod` (walk only for now). The window starts
+  now, Pomona time.
+- **Geocoding** uses OSM addresses loaded into Snowflake. The trial blocks
+  external access, so Census and Nominatim can't be called.
+
 ## Open
 - The response shape vs. the draft TEAM-CONTRACT `PlaceRecord` (no cost, visit
   time, or facts): agree it with the backend and AI owners.
+- Campus businesses often lack OSM hours, so near Cal Poly only about 4 places qualify.
+  Options: add hours by hand, relax the hours rule, or add a source with hours.
 - About 95 places is small. Widening the bounding box or adding a second source
   is a later decision.
 - Event delivery and analytics were removed. Revisit them if the dashboard needs

@@ -7,12 +7,14 @@ Commands, in first-run order:
     check                     connect and print account/user/role/region
     setup [--reset]           roles, warehouse, database, tables (--reset drops the database first)
     deploy                    build + upload the Python package, create UDF and procedure
-    load                      fetch Pomona OSM data, upload, parse hours, embed categories
-    call REQUEST.json [--out FILE] [--role LQ_APP_RO]   print the CandidateSet
+    load                      fetch Pomona OSM places + addresses, upload, parse hours, embed
+    call REQUEST.json "ADDRESS" [--out FILE] [--role LQ_APP_RO]
+                              run the API's exact call and print the result:
+                              CALL LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS(PARSE_JSON(<json>), <address>)
 
 Connection settings come from environment variables or snowflake/.env:
 SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER (login name), SNOWFLAKE_PRIVATE_KEY_PATH,
-optional SNOWFLAKE_PRIVATE_KEY_PASSPHRASE, and LQ_DB (default LOCAL_QUEST_DEV).
+optional SNOWFLAKE_PRIVATE_KEY_PASSPHRASE, and LQ_DB (default LOCAL_QUEST, the name the API calls).
 """
 
 import argparse
@@ -63,7 +65,7 @@ def connect():
 
 
 def lq_db():
-    name = os.environ.get("LQ_DB", "LOCAL_QUEST_DEV")
+    name = os.environ.get("LQ_DB", "LOCAL_QUEST")
     if not IDENTIFIER.match(name):
         sys.exit("LQ_DB must be a plain identifier")
     return name
@@ -73,7 +75,7 @@ def use_project(cur, role="LQ_OWNER"):
     cur.execute(f"USE ROLE {role}")
     cur.execute("USE WAREHOUSE LQ_WH")
     cur.execute(f"USE DATABASE {lq_db()}")
-    cur.execute("USE SCHEMA QUEST")
+    cur.execute("USE SCHEMA APP")
     cur.execute("SET lq_db = %s", (lq_db(),))
 
 
@@ -115,18 +117,21 @@ def cmd_deploy(conn, args):
     subprocess.run([sys.executable, str(ROOT / "scripts" / "build_package.py")], check=True)
     cur = conn.cursor()
     use_project(cur)
-    put(cur, BUILD / "lq_snowflake.zip", "@QUEST.CODE", compress=False)
+    put(cur, BUILD / "lq_snowflake.zip", "@APP.CODE", compress=False)
     run_file(conn, "03_functions.sql")
 
 
 def cmd_load(conn, args):
-    out = BUILD / "osm_pomona.ndjson"
-    subprocess.run([sys.executable, str(ROOT / "scripts" / "osm_fetch.py"), "--out", str(out)],
-                   check=True)
+    fetch = [sys.executable, str(ROOT / "scripts" / "osm_fetch.py")]
+    places = BUILD / "osm_pomona_places.ndjson"
+    addresses = BUILD / "osm_pomona_addresses.ndjson"
+    subprocess.run(fetch + ["--out", str(places)], check=True)
+    subprocess.run(fetch + ["--addresses", "--out", str(addresses)], check=True)
     cur = conn.cursor()
     use_project(cur)
-    cur.execute("REMOVE @QUEST.OSM")
-    put(cur, out, "@QUEST.OSM")
+    cur.execute("REMOVE @APP.OSM")
+    put(cur, places, "@APP.OSM")
+    put(cur, addresses, "@APP.OSM")
     cur.execute("SET embed_model = %s", (settings.EMBED_MODEL,))
     run_file(conn, "04_load.sql")
 
@@ -136,7 +141,8 @@ def cmd_call(conn, args):
     json.loads(request_text)  # fail early on malformed JSON
     cur = conn.cursor()
     use_project(cur, role=args.role)
-    cur.execute("CALL QUEST.GET_CANDIDATES(PARSE_JSON(%s))", (request_text,))
+    cur.execute(f"CALL {lq_db()}.APP.FIND_QUEST_LOCATIONS(PARSE_JSON(%s), %s)",
+                (request_text, args.address))
     output = json.dumps(json.loads(cur.fetchone()[0]), indent=2, ensure_ascii=False)
     if args.out:
         Path(args.out).write_text(output + "\n")
@@ -155,6 +161,7 @@ def main():
     sub.add_parser("load")
     call = sub.add_parser("call")
     call.add_argument("request")
+    call.add_argument("address")
     call.add_argument("--out")
     call.add_argument("--role", default="LQ_OWNER", choices=["LQ_OWNER", "LQ_APP_RO"])
     args = parser.parse_args()

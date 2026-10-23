@@ -3,26 +3,26 @@
 
 USE ROLE LQ_OWNER;
 USE DATABASE IDENTIFIER($lq_db);
-USE SCHEMA QUEST;
+USE SCHEMA APP;
 
 CREATE OR REPLACE FUNCTION PARSE_OSM_HOURS(opening_hours STRING)
     RETURNS ARRAY
     LANGUAGE PYTHON
     COMMENT = 'Weekly slots from OSM opening_hours; NULL when unsupported (= unknown)'
     RUNTIME_VERSION = '3.11'
-    IMPORTS = ('@QUEST.CODE/lq_snowflake.zip')
+    IMPORTS = ('@APP.CODE/lq_snowflake.zip')
     HANDLER = 'lq_snowflake.osm_hours.udf_parse';
 
-CREATE OR REPLACE PROCEDURE GET_CANDIDATES(request VARIANT)
+CREATE OR REPLACE PROCEDURE FIND_QUEST_LOCATIONS(request VARIANT, address STRING)
     RETURNS VARIANT
     LANGUAGE PYTHON
     RUNTIME_VERSION = '3.11'
     PACKAGES = ('snowflake-snowpark-python', 'tzdata')
-    IMPORTS = ('@QUEST.CODE/lq_snowflake.zip')
-    HANDLER = 'lq_snowflake.procedure.get_candidates'
-    COMMENT = 'Top open Pomona places near the start that match the interests'
+    IMPORTS = ('@APP.CODE/lq_snowflake.zip')
+    HANDLER = 'lq_snowflake.procedure.find_quest_locations'
+    COMMENT = 'Top 10 open Pomona places near the address that match the preferences'
     EXECUTE AS OWNER;
 
 GRANT USAGE ON DATABASE IDENTIFIER($lq_db) TO ROLE LQ_APP_RO;
-GRANT USAGE ON SCHEMA QUEST TO ROLE LQ_APP_RO;
-GRANT USAGE ON PROCEDURE GET_CANDIDATES(VARIANT) TO ROLE LQ_APP_RO;
+GRANT USAGE ON SCHEMA APP TO ROLE LQ_APP_RO;
+GRANT USAGE ON PROCEDURE FIND_QUEST_LOCATIONS(VARIANT, STRING) TO ROLE LQ_APP_RO;

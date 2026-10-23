@@ -1,7 +1,8 @@
-"""Stored-procedure handler for QUEST.GET_CANDIDATES(request VARIANT).
+"""Handler for APP.FIND_QUEST_LOCATIONS(request VARIANT, address STRING).
 
-Request values reach SQL only as bind parameters; the one interpolated value is
-the constant settings.EMBED_MODEL.
+The address is geocoded against APP.ADDRESS (OpenStreetMap addresses in Pomona;
+this trial account cannot call outside geocoders). Request values reach SQL only
+as bind parameters; the one interpolated value is the constant settings.EMBED_MODEL.
 
 Preference match per place = the best (tag, interest) score of:
 * keyword: 1.0 exact tag, INTEREST_SYNONYM weight, or 0.8 whole-word match;
@@ -15,19 +16,20 @@ Preference match per place = the best (tag, interest) score of:
 
 import json
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from . import settings
 from .ranking import build_candidate_set, search_radius_m
-from .request import validate_request
+from .request import parse_request
 
 NEARBY_SQL = """
 WITH origin AS (SELECT ST_MAKEPOINT(?::FLOAT, ?::FLOAT) AS pt),
 near AS (
     SELECT p.place_id, p.osm_ref, p.name, p.tags, p.latitude, p.longitude,
            p.address, p.website, p.snapshot_date, ST_DISTANCE(p.point, s.pt) AS dist_m
-    FROM QUEST.PLACE p CROSS JOIN origin s
+    FROM APP.PLACE p CROSS JOIN origin s
     WHERE ST_DWITHIN(p.point, s.pt, ?::FLOAT)
-      AND EXISTS (SELECT 1 FROM QUEST.PLACE_HOURS h WHERE h.place_id = p.place_id)
+      AND EXISTS (SELECT 1 FROM APP.PLACE_HOURS h WHERE h.place_id = p.place_id)
 ),
 interests AS (
     SELECT f.value::STRING AS interest FROM TABLE(FLATTEN(input => PARSE_JSON(?))) f
@@ -44,7 +46,7 @@ keyword_match AS (
                 ELSE 0 END AS sim
     FROM place_tags pt
     CROSS JOIN interests it
-    LEFT JOIN QUEST.INTEREST_SYNONYM s ON s.interest = it.interest AND s.label = pt.label
+    LEFT JOIN APP.INTEREST_SYNONYM s ON s.interest = it.interest AND s.label = pt.label
 ),
 interest_vecs AS (
     SELECT interest, AI_EMBED('{model}', interest) AS vec FROM interests
@@ -57,7 +59,7 @@ sem_rank AS (
                ROW_NUMBER() OVER (PARTITION BY iv.interest
                    ORDER BY VECTOR_COSINE_SIMILARITY(ce.embedding, iv.vec) DESC, ce.label) AS rk
         FROM interest_vecs iv
-        JOIN QUEST.CATEGORY_EMBEDDING ce ON ce.model = '{model}'
+        JOIN APP.CATEGORY_EMBEDDING ce ON ce.model = '{model}'
     )
     WHERE rk <= ?::INT AND cos >= ?::FLOAT
 ),
@@ -81,13 +83,29 @@ LEFT JOIN best b ON b.place_id = n.place_id""".replace("{model}", settings.EMBED
 
 HOURS_SQL = """
 SELECT place_id, day_of_week, open_minute, close_minute
-FROM QUEST.PLACE_HOURS
+FROM APP.PLACE_HOURS
 WHERE ARRAY_CONTAINS(place_id::VARIANT, PARSE_JSON(?))"""
 
 
-def get_candidates(session, request):
+# Several OSM features can share an address (e.g. every building on a campus);
+# use their median point.
+ADDRESS_SQL = """
+SELECT MEDIAN(latitude) AS lat, MEDIAN(longitude) AS lon, COUNT(*) AS n,
+       MODE(housenumber || ' ' || street || COALESCE(', ' || postcode, '')) AS matched
+FROM APP.ADDRESS
+WHERE housenumber = ? AND street_core = ? AND (?::STRING IS NULL OR postcode = ?)"""
+
+
+def find_quest_locations(session, request, address):
     payload = json.loads(request) if isinstance(request, str) else request
-    req = validate_request(payload)
+
+    def locate(housenumber, core, postcode):
+        row = _rows(session.sql(ADDRESS_SQL, params=[housenumber, core, postcode, postcode]))[0]
+        if not row["n"]:
+            return None
+        return float(row["lat"]), float(row["lon"]), row["matched"]
+
+    req = parse_request(payload, address, datetime.now(ZoneInfo(settings.TIMEZONE)), locate)
 
     rows = _rows(session.sql(NEARBY_SQL, params=[
         req.longitude, req.latitude, search_radius_m(req.available_seconds),

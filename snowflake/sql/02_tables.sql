@@ -3,7 +3,7 @@
 
 USE ROLE LQ_OWNER;
 USE DATABASE IDENTIFIER($lq_db);
-USE SCHEMA QUEST;
+USE SCHEMA APP;
 
 -- OSM businesses (named, with an opening_hours tag). Reloaded by sql/04_load.sql.
 CREATE TABLE IF NOT EXISTS PLACE (
@@ -27,6 +27,20 @@ CREATE TABLE IF NOT EXISTS PLACE_HOURS (
     day_of_week   NUMBER NOT NULL,
     open_minute   NUMBER NOT NULL,
     close_minute  NUMBER NOT NULL
+);
+
+-- OSM street addresses in Pomona, used to geocode the API's address (this trial
+-- account cannot call outside geocoders). street_core is normalized by
+-- lq_snowflake.addresses.street_core, e.g. 'West Temple Avenue' -> 'temple ave'.
+CREATE TABLE IF NOT EXISTS ADDRESS (
+    osm_ref        STRING NOT NULL,
+    housenumber    STRING NOT NULL,
+    street         STRING NOT NULL,
+    street_core    STRING NOT NULL,
+    postcode       STRING,
+    latitude       FLOAT NOT NULL,
+    longitude      FLOAT NOT NULL,
+    snapshot_date  DATE NOT NULL
 );
 
 -- Keyword matching: interest -> category label with a weight below 1.0.

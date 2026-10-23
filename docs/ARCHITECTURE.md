@@ -369,3 +369,6 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
 - 2026-10-23: Snowflake scaled down to a single dataset (OpenStreetMap, Pomona). Removed
   Overture matching, curated overlay, analytics views, multi-region ingest, and the config
   table; Cortex is now a top-1 fallback for interests without keyword matches.
+- 2026-10-23: Snowflake entry point is LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS(request VARIANT,
+  address STRING) to match the API. Address geocoded against OSM addresses in Snowflake
+  because the trial account blocks external network access.

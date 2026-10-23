@@ -1,6 +1,8 @@
-"""Fetch named Pomona businesses with opening_hours from OpenStreetMap as NDJSON.
+"""Fetch Pomona businesses (or street addresses) from OpenStreetMap as NDJSON.
 
-Usage: python3 snowflake/scripts/osm_fetch.py --out snowflake/build/osm_pomona.ndjson
+Usage: python3 snowflake/scripts/osm_fetch.py [--addresses] --out FILE.ndjson
+Businesses: named, with opening_hours. Addresses: features with a house number and
+street, used to geocode the API's address inside Snowflake.
 Normally run by `scripts/lq.py load`. Uses the public Overpass API; keep runs
 infrequent. Data is © OpenStreetMap contributors under ODbL-1.0 and must be
 attributed wherever it is shown.
@@ -16,10 +18,12 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
+from lq_snowflake.addresses import street_core  # noqa: E402
 from lq_snowflake.osm_categories import categories  # noqa: E402
 
 OVERPASS_URLS = (
     "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
 )
 ATTEMPTS_PER_URL = 2
@@ -34,6 +38,9 @@ QUERY = """[out:json][timeout:180];
   nwr["opening_hours"]["name"]["leisure"]({bbox});
   nwr["opening_hours"]["name"]["craft"]({bbox});
 );
+out center tags;"""
+ADDRESS_QUERY = """[out:json][timeout:300];
+nwr["addr:housenumber"]["addr:street"]({bbox});
 out center tags;"""
 
 
@@ -75,6 +82,27 @@ def to_records(payload):
         }
 
 
+def to_address_records(payload):
+    snapshot = payload.get("osm3s", {}).get("timestamp_osm_base", "")[:10]
+    for element in payload.get("elements", []):
+        tags = element.get("tags", {})
+        lat = element.get("lat", element.get("center", {}).get("lat"))
+        lon = element.get("lon", element.get("center", {}).get("lon"))
+        core = street_core(tags["addr:street"])
+        if lat is None or lon is None or not core:
+            continue
+        yield {
+            "osm_ref": f"{element['type']}/{element['id']}",
+            "housenumber": tags["addr:housenumber"].strip().lower(),
+            "street": tags["addr:street"],
+            "street_core": core,
+            "postcode": (tags.get("addr:postcode") or "").strip()[:5] or None,
+            "latitude": lat,
+            "longitude": lon,
+            "snapshot_date": snapshot,
+        }
+
+
 def address(tags):
     street = " ".join(p for p in (tags.get("addr:housenumber"), tags.get("addr:street")) if p)
     parts = [p for p in (street, tags.get("addr:city"), tags.get("addr:postcode")) if p]
@@ -101,20 +129,24 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--bbox", type=parse_bbox, default=POMONA_BBOX,
                         help="south,west,north,east (default: Pomona)")
+    parser.add_argument("--addresses", action="store_true", help="fetch street addresses instead")
     parser.add_argument("--out", required=True, type=Path)
     args = parser.parse_args()
 
     south, west, north, east = args.bbox
-    query = QUERY.format(bbox=f"{south},{west},{north},{east}")
-    payload = fetch(query)
+    bbox = f"{south},{west},{north},{east}"
+    if args.addresses:
+        records, kind = to_address_records(fetch(ADDRESS_QUERY.format(bbox=bbox))), "addresses"
+    else:
+        records, kind = to_records(fetch(QUERY.format(bbox=bbox))), "places"
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     count = 0
     with args.out.open("w", encoding="utf-8") as handle:
-        for record in to_records(payload):
+        for record in records:
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
             count += 1
-    print(f"wrote {count} places to {args.out}")
+    print(f"wrote {count} {kind} to {args.out}")
 
 
 if __name__ == "__main__":

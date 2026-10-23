@@ -1,15 +1,21 @@
-"""Validate the request JSON. Errors raise ``LQ_INVALID_INPUT: <field>: <reason>``.
+"""Parse the API's request into the values the search needs.
 
-The backend applies defaults before calling Snowflake; anything malformed is
-rejected here instead of being filled in. Budget is validated for contract
-compatibility but not used for filtering: OpenStreetMap has no prices.
+The API calls ``FIND_QUEST_LOCATIONS(request VARIANT, address STRING)`` with::
+
+    {"desiredTime": 120, "desiredBudget": 25.0,
+     "locationPreference": "coffee, art", "travelMethod": "walk"}
+
+Errors raise ``LQ_INVALID_INPUT: <field>: <reason>``. The window starts now in
+Pomona time. Budget is validated and echoed but not used for filtering:
+OpenStreetMap has no prices.
 """
 
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from . import settings
+from .addresses import parse_address
 
 
 class InvalidInput(ValueError):
@@ -32,90 +38,74 @@ class Request:
     interests: tuple
 
 
-def validate_request(payload):
+def parse_request(payload, address, now, locate):
+    """``locate(housenumber, street_core, postcode)`` returns ``(lat, lon, matched)`` or None."""
     if not isinstance(payload, dict):
         raise InvalidInput("request", "must be a JSON object")
 
-    request_id = payload.get("request_id")
-    if not isinstance(request_id, str) or not 1 <= len(request_id) <= 128:
-        raise InvalidInput("request_id", "must be a non-empty string up to 128 characters")
+    minutes = payload.get("desiredTime")
+    if not _is_number(minutes) or not 0 < minutes <= settings.MAX_DESIRED_MINUTES:
+        raise InvalidInput("desiredTime",
+                           f"must be minutes between 1 and {settings.MAX_DESIRED_MINUTES}")
+    available = int(round(minutes * 60))
 
-    limit = payload.get("limit")
-    if not _is_int(limit) or not 1 <= limit <= settings.LIMIT_CAP:
-        raise InvalidInput("limit", f"must be an integer from 1 to {settings.LIMIT_CAP}")
+    budget = payload.get("desiredBudget")
+    if not _is_number(budget) or budget < 0:
+        raise InvalidInput("desiredBudget", "must be a non-negative number of dollars")
 
-    constraints = payload.get("constraints")
-    if not isinstance(constraints, dict):
-        raise InvalidInput("constraints", "must be an object")
-
-    start = constraints.get("start")
-    if not isinstance(start, dict):
-        raise InvalidInput("constraints.start", "must be an object")
-    latitude = start.get("latitude")
-    longitude = start.get("longitude")
-    if not _is_number(latitude) or not -90 <= latitude <= 90:
-        raise InvalidInput("constraints.start.latitude", "must be between -90 and 90")
-    if not _is_number(longitude) or not -180 <= longitude <= 180:
-        raise InvalidInput("constraints.start.longitude", "must be between -180 and 180")
-
-    tz_name = constraints.get("timezone")
-    if not isinstance(tz_name, str):
-        raise InvalidInput("constraints.timezone", "must be an IANA timezone name")
-    try:
-        ZoneInfo(tz_name)
-    except (ZoneInfoNotFoundError, ValueError):
-        raise InvalidInput("constraints.timezone", "unknown IANA timezone") from None
-
-    departure = constraints.get("departure_time")
-    try:
-        window_start = datetime.fromisoformat(departure) if isinstance(departure, str) else None
-    except ValueError:
-        window_start = None
-    if window_start is None or window_start.tzinfo is None:
-        raise InvalidInput("constraints.departure_time", "must be ISO 8601 with an offset")
-
-    available = constraints.get("available_seconds")
-    if not _is_int(available) or available <= 0 or available > 86400:
-        raise InvalidInput("constraints.available_seconds", "must be an integer from 1 to 86400")
-
-    budget = constraints.get("budget")
-    if not isinstance(budget, dict):
-        raise InvalidInput("constraints.budget", "must be a money object")
-    amount = budget.get("amount_minor")
-    if not _is_int(amount) or amount < 0:
-        raise InvalidInput("constraints.budget.amount_minor", "must be a non-negative integer")
-    if budget.get("currency") not in settings.SUPPORTED_CURRENCIES:
-        raise InvalidInput("constraints.budget.currency", "unsupported currency")
-
-    interests = constraints.get("interests")
-    if not isinstance(interests, list):
-        raise InvalidInput("constraints.interests", "must be an array")
+    preference = payload.get("locationPreference", "")
+    if preference is None:
+        preference = ""
+    if not isinstance(preference, str):
+        raise InvalidInput("locationPreference", "must be a comma-separated string")
+    interests = []
+    for part in preference.split(","):
+        value = part.strip().lower()
+        if len(value) > settings.MAX_INTEREST_LENGTH:
+            raise InvalidInput("locationPreference",
+                               f"each preference must be at most {settings.MAX_INTEREST_LENGTH} characters")
+        if value and value not in interests:
+            interests.append(value)
     if len(interests) > settings.MAX_INTERESTS:
-        raise InvalidInput("constraints.interests", f"at most {settings.MAX_INTERESTS} entries")
-    cleaned = []
-    for item in interests:
-        value = item.strip().lower() if isinstance(item, str) else ""
-        if not value or len(value) > settings.MAX_INTEREST_LENGTH:
-            raise InvalidInput("constraints.interests", "entries must be 1-64 character strings")
-        if value not in cleaned:
-            cleaned.append(value)
+        raise InvalidInput("locationPreference", f"at most {settings.MAX_INTERESTS} preferences")
 
+    travel = payload.get("travelMethod")
+    if not isinstance(travel, str) or travel.strip().lower() not in settings.TRAVEL_METHODS:
+        raise InvalidInput("travelMethod", f"supported: {', '.join(settings.TRAVEL_METHODS)}")
+
+    if not isinstance(address, str) or not address.strip() or len(address) > settings.MAX_ADDRESS_LENGTH:
+        raise InvalidInput("address", "must be a street address")
+    parsed = parse_address(address)
+    if parsed is None:
+        raise InvalidInput("address", "expected '<number> <street>, <city>, <state> <zip>'")
+    located = locate(*parsed)
+    if located is None:
+        raise InvalidInput("address", "not found in the Pomona address data")
+    latitude, longitude, matched = located
+
+    window_start = now.replace(microsecond=0)
     return Request(
-        request_id=request_id,
-        limit=limit,
-        constraints=constraints,
-        latitude=float(latitude),
-        longitude=float(longitude),
+        request_id=f"lq_{uuid.uuid4().hex[:16]}",
+        limit=settings.RESULT_LIMIT,
+        constraints={
+            "address": address,
+            "matched_address": matched,
+            "start": {"latitude": latitude, "longitude": longitude},
+            "departure_time": window_start.isoformat(),
+            "timezone": settings.TIMEZONE,
+            "available_seconds": available,
+            "budget": {"amount_minor": int(round(budget * 100)), "currency": settings.CURRENCY},
+            "interests": interests,
+            "travel_method": travel.strip().lower(),
+        },
+        latitude=latitude,
+        longitude=longitude,
         window_start=window_start,
         window_end=window_start + timedelta(seconds=available),
-        timezone=tz_name,
+        timezone=settings.TIMEZONE,
         available_seconds=available,
-        interests=tuple(cleaned),
+        interests=tuple(interests),
     )
-
-
-def _is_int(value):
-    return isinstance(value, int) and not isinstance(value, bool)
 
 
 def _is_number(value):

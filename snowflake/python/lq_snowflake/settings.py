@@ -1,6 +1,6 @@
 """Ranking and matching settings. Change RANKING_VERSION when any value changes."""
 
-RANKING_VERSION = "osm_hybrid_v2"
+RANKING_VERSION = "osm_hybrid_v3"
 
 # Score = W_SIM * preference match + W_DIST * closeness (1 at the start, 0 at the radius edge).
 W_SIM = 0.7
@@ -13,10 +13,15 @@ WALKING_SPEED_MPS = 1.3
 # A place must stay open this long, continuously, inside the user's time window.
 MIN_OPEN_SECONDS = 1200
 
-LIMIT_CAP = 10
+# API request (FIND_QUEST_LOCATIONS): times are "now" in Pomona; walking only for now.
+TIMEZONE = "America/Los_Angeles"
+TRAVEL_METHODS = ("walk",)
+RESULT_LIMIT = 10
+MAX_DESIRED_MINUTES = 1440
 MAX_INTERESTS = 5
 MAX_INTEREST_LENGTH = 64
-SUPPORTED_CURRENCIES = ("USD",)
+CURRENCY = "USD"
+MAX_ADDRESS_LENGTH = 300
 
 # Semantic fallback (interests with no keyword match nearby): a tag counts when it
 # is among the interest's SEMANTIC_TOP_K closest category labels (Cortex AI_EMBED
