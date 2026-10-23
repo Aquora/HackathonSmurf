@@ -1,4 +1,5 @@
 import logging
+import random
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -8,7 +9,8 @@ from ..domain.locations import parse_locations
 from ..domain.ports import LocationProvider, PreferenceExtractor, RoutePlanInput, RoutePlanner
 from ..domain.preferences import normalize_preferences
 from ..domain.route import RouteContext, prove_infeasible, validate_route
-from ..domain.types import Preferences, QuestRoute, UserRequest
+from ..domain.tasks import assign_tasks
+from ..domain.types import CAMPUS_LOCATION, Preferences, QuestRoute, UserRequest
 from ..errors import AppError, upstream_invalid
 
 log = logging.getLogger(__name__)
@@ -38,6 +40,7 @@ class QuestService:
         timezone: str,
         mock: bool,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
+        rng: random.Random | None = None,
     ) -> None:
         self._extractor = extractor
         self._locations = locations
@@ -45,9 +48,11 @@ class QuestService:
         self._timezone = timezone
         self._mock = mock  # when True, responses are labeled `mock: true`
         self._now = now
+        self._rng = rng or random.Random()
 
     async def create_quest(self, request: UserRequest) -> QuestResult:
-        address = request.location.address
+        # Quests always start and end at Cal Poly Pomona.
+        address = CAMPUS_LOCATION.address
 
         # 1–4. Cursor extracts preferences; code applies defaults to anything missing/invalid.
         raw_preferences = await self._extractor.extract_preferences(request.message, address)
@@ -62,12 +67,15 @@ class QuestService:
 
         # 7–8. Cursor plans a round-trip route; code validates it against the candidates.
         start_time = local_clock(self._now(), self._timezone)
+        # One random task per candidate; sent to Cursor and enforced on the returned stops.
+        tasks = assign_tasks(candidates, self._rng)
         ctx = RouteContext(
             address=address,
             candidates=candidates,
             start_time=start_time,
             desired_time=preferences.desiredTime,
             desired_budget=preferences.desiredBudget,
+            tasks=tasks,
         )
         # Proven impossible for every route: say so without spending a model call.
         if (proof := prove_infeasible(ctx)) is not None:
@@ -87,6 +95,7 @@ class QuestService:
                     locations=candidates,
                     start_time=start_time,
                     timezone=self._timezone,
+                    tasks=tasks,
                     previous_issues=issues,
                 )
             )

@@ -355,6 +355,10 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
   persistence, check-ins, auth, approved-facts grounding.
 - **Mocks:** default for local dev; responses carry `mock: true`; refused in production
   unless `ALLOW_MOCK_IN_PRODUCTION=true`.
+- **Fixed start (2026-10-23):** every quest starts and ends at Cal Poly Pomona,
+  `3801 W Temple Ave, Pomona, CA 91768` (`CAMPUS_LOCATION` in `api/app/domain/types.py`).
+  The request no longer accepts a start address; a legacy `location` field is ignored.
+  This also settles the "one neighborhood" demo scope around campus.
 
 - Owner finalized top-10 retrieval followed by AI route planning. Missing duration
   defaults to 90 minutes, budget to $30, and preferences to none. Backend remains
@@ -378,3 +382,8 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
 - 2026-10-23: Snowflake entry point is LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS(request VARIANT,
   address STRING) to match the API. Address geocoded against OSM addresses in Snowflake
   because the trial account blocks external network access.
+- 2026-10-23: Each quest stop now has a `task` and a `description`. Code picks one task at
+  random per Snowflake candidate (inside photo, building photo, or review screenshot) and
+  sends it in the Cursor prompt; the returned stop always carries the code-assigned task.
+  Cursor writes the description from the provided facts only; a missing or overlong one is
+  replaced with template text. Uploads for tasks are not implemented yet.

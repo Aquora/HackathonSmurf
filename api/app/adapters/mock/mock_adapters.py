@@ -6,7 +6,7 @@ The locations are fictional; responses produced with these adapters carry `mock:
 import re
 from typing import Any
 
-from ...domain.locations import clock_minutes
+from ...domain.locations import clock_minutes, location_key
 from ...domain.ports import RoutePlanInput
 from ...domain.types import Location
 
@@ -83,8 +83,16 @@ class MockRoutePlanner:
                 continue
             if departure + leg - start > request.preferences.desiredTime:
                 break
+            task = request.tasks.get(location_key(loc.name, loc.address))
             quests.append(
-                {"location": loc.model_dump(), "arrivalTime": _hhmm(arrival), "departureTime": _hhmm(departure), "travelDistance": _LEG_MILES}
+                {
+                    "location": loc.model_dump(),
+                    "arrivalTime": _hhmm(arrival),
+                    "departureTime": _hhmm(departure),
+                    "travelDistance": _LEG_MILES,
+                    "task": task.model_dump() if task else None,
+                    "description": f"[Demo] Stop {len(quests) + 1}: visit {loc.name} on your way around the quest.",
+                }
             )
             now = departure
             spent += loc.estimatedCost

@@ -24,9 +24,13 @@ class UserLocation(_Model):
     address: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=ADDRESS_MAX_LENGTH)]
 
 
+# Every quest starts and ends at Cal Poly Pomona; users cannot choose a different start.
+CAMPUS_LOCATION = UserLocation(address="3801 W Temple Ave, Pomona, CA 91768")
+
+
 class UserRequest(_Model):
+    # Unknown fields (e.g. a legacy `location`) are ignored; the start is always CAMPUS_LOCATION.
     message: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=MESSAGE_MAX_LENGTH)]
-    location: UserLocation
 
 
 class Preferences(_Model):
@@ -47,11 +51,30 @@ class Location(_Model):
     estimatedCost: float | None = None
 
 
+TaskId = Literal["photo_inside", "photo_building", "review_screenshot"]
+
+
+class QuestTask(_Model):
+    id: TaskId
+    text: str
+
+
+# Each stop gets exactly one of these, chosen at random by code (see domain/tasks.py).
+QUEST_TASKS: tuple[QuestTask, ...] = (
+    QuestTask(id="photo_inside", text="Take a picture of the inside"),
+    QuestTask(id="photo_building", text="Take a picture of the building"),
+    QuestTask(id="review_screenshot", text="Give a review of the establishment and upload a screenshot"),
+)
+
+
 class Quest(_Model):
     location: Location
     arrivalTime: str
     departureTime: str
     travelDistance: float
+    task: QuestTask
+    # Short model-written description of this stop; replaced by template text if unusable.
+    description: str
 
 
 class QuestRoute(_Model):

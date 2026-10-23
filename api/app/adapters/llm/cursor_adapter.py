@@ -1,10 +1,12 @@
 import json
 from typing import Any
 
+from ...domain.locations import location_key
 from ...domain.ports import RoutePlanInput
+from ...domain.types import QUEST_TASKS
 from .chat_client import JsonChatClient
 
-PROMPT_VERSION = "2026-10-23.1"
+PROMPT_VERSION = "2026-10-23.2"
 
 PREFERENCES_SYSTEM = """You extract travel quest preferences from a user's message.
 Reply with ONLY a JSON object with exactly these keys:
@@ -25,7 +27,9 @@ ROUTE_SYSTEM = """You plan a one-day local quest route. Reply with ONLY a JSON o
       "location": { "name": string, "address": string, "closingTime": string },
       "arrivalTime": "HH:MM",      // 24-hour local time
       "departureTime": "HH:MM",    // 24-hour local time
-      "travelDistance": number     // miles from the previous point to this stop
+      "travelDistance": number,    // miles from the previous point to this stop
+      "task": { "id": string, "text": string },  // copy the location's assigned task exactly
+      "description": string        // 1-2 sentences, max 300 characters (see rules)
     }
   ],
   "endLocation": { "address": string },
@@ -40,7 +44,17 @@ Rules:
 - Arrive after the start time, depart before each location's closingTime, and keep times in order.
 - Respect desiredTime (minutes) and desiredBudget (dollars) as closely as possible; prefer fewer stops over exceeding them.
 - Match locationPreference where possible; "random" means any mix.
-- Estimates only: do not invent discounts, offers, or partnerships."""
+- Estimates only: do not invent discounts, offers, or partnerships.
+Tasks:
+- Every location in the input has an assigned "task", picked at random from: {task_list}.
+- For each stop you choose, copy that location's assigned task exactly. Do not change or swap tasks.
+Descriptions:
+- Write a short, upbeat "description" for each stop (1-2 sentences, at most 300 characters).
+- Say why the stop fits the user's locationPreference and mention its task.
+- Use only the facts provided (name, address, closingTime, estimatedCost). Do not invent history,
+  menu items, ratings, events, discounts, offers, or partnerships.""".replace(
+    "{task_list}", "; ".join(f'"{t.text}"' for t in QUEST_TASKS)
+)
 
 
 class CursorAdapter:
@@ -63,7 +77,13 @@ class CursorAdapter:
             "startTime": request.start_time,
             "timezone": request.timezone,
             "preferences": request.preferences.model_dump(),
-            "locations": [loc.model_dump() for loc in request.locations],
+            "locations": [
+                {
+                    **loc.model_dump(),
+                    "task": task.model_dump() if (task := request.tasks.get(location_key(loc.name, loc.address))) else None,
+                }
+                for loc in request.locations
+            ],
         }
         messages = [
             {"role": "system", "content": ROUTE_SYSTEM},
