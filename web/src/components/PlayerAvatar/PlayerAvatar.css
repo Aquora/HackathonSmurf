@@ -1,0 +1,33 @@
+/* 88px box: 3px border around an 80px picture, with a hard 4px drop shadow. */
+.player-avatar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  overflow: hidden;
+  background: var(--pixel-light);
+  border: 3px solid var(--color-input-border);
+  box-shadow: 0 4px 0 0 var(--color-shadow-deep);
+}
+
+.player-avatar__explorer {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  overflow: hidden;
+}
+
+.player-avatar__layer {
+  position: absolute;
+  width: auto;
+  height: auto;
+}
+
+.player-avatar__photo {
+  display: block;
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+}

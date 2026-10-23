@@ -1,0 +1,37 @@
+/* 140.93x70.5 hit box; the SVG frame extends 5px below it for the drop shadow. */
+.pixel-button {
+  position: relative;
+  display: inline-block;
+  width: 140.93px;
+  height: 70.5px;
+  color: var(--color-white);
+  text-decoration: none;
+}
+
+.pixel-button__frame {
+  position: absolute;
+  inset: 0 auto auto 0;
+  display: block;
+  pointer-events: none;
+}
+
+.pixel-button__label {
+  position: absolute;
+  left: 70.26px;
+  top: 35.37px;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-body);
+  font-size: 67px;
+  line-height: 22px;
+  white-space: nowrap;
+}
+
+.pixel-button:hover .pixel-button__frame,
+.pixel-button:hover .pixel-button__label {
+  filter: brightness(1.05);
+}
+
+.pixel-button:active .pixel-button__frame,
+.pixel-button:active .pixel-button__label {
+  translate: 0 2px;
+}

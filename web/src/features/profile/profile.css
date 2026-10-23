@@ -1,0 +1,415 @@
+/* "LocalQuest player profile" frame (34:4409). */
+
+.profile-page {
+  padding-bottom: 100px; /* room for the fixed bottom nav */
+}
+
+/* ---------- Player banner ---------- */
+
+.player-banner {
+  background: var(--color-hero);
+}
+
+.player-banner__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 18px 32px 24px;
+}
+
+.player-banner__heading {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 40px;
+  font-weight: normal;
+  line-height: 40px;
+  color: var(--color-white);
+}
+
+.player-banner__details {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.player-banner__identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.player-banner__identity p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.player-banner__name {
+  font-family: var(--font-title);
+  font-size: 42px;
+  line-height: 40px;
+  color: var(--color-white);
+}
+
+.player-banner__handle {
+  font-family: var(--font-body);
+  font-size: 20px;
+  line-height: 22px;
+  color: var(--pixel-light);
+}
+
+.player-banner__meta {
+  font-family: var(--font-body);
+  font-size: 19px;
+  line-height: 22px;
+  color: var(--color-white);
+}
+
+.player-banner__tagline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.player-banner__tagline {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 20px;
+  color: var(--color-white);
+}
+
+.profile-edit-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--color-input-bg);
+  border: 2px solid var(--color-input-border);
+  box-shadow: 0 4px 0 0 var(--color-shadow-deep);
+  font-family: var(--font-body);
+  font-size: 20px;
+  color: var(--color-link);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.profile-edit-button:active {
+  translate: 0 2px;
+  box-shadow: 0 2px 0 0 var(--color-shadow-deep);
+}
+
+.player-banner__ground {
+  height: 4px;
+  background: var(--color-gold);
+  border: 1px solid var(--color-input-border);
+}
+
+/* ---------- Picture editor (Player settings page) ---------- */
+
+.profile-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--color-input-bg);
+  border: 2px solid var(--color-input-border);
+  box-shadow: 0 4px 0 0 var(--color-shadow-deep);
+  font-family: var(--font-body);
+  color: var(--color-ink);
+}
+
+.profile-editor__title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 28px;
+  font-weight: normal;
+  line-height: 28px;
+}
+
+.profile-editor__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profile-editor__help {
+  margin: 0;
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--color-muted);
+}
+
+.profile-editor__form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.profile-editor__file {
+  cursor: pointer;
+}
+
+.profile-editor__file:focus-within .small-button {
+  outline: 3px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+.profile-editor__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.profile-editor__remove {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 18px;
+  color: var(--color-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.profile-editor__status {
+  margin: 0;
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--color-link);
+}
+
+.profile-editor__error {
+  margin: 0;
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--color-header);
+}
+
+/* ---------- Sections ---------- */
+
+.profile-section {
+  display: flex;
+  flex-direction: column;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 0 32px;
+  font-family: var(--font-body);
+  color: var(--color-ink);
+}
+
+.profile-section__heading {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 32px;
+  font-weight: normal;
+  line-height: 32px;
+}
+
+/* Progress */
+
+.profile-progress {
+  gap: 8px;
+  padding-top: 24px;
+  padding-bottom: 20px;
+}
+
+.profile-progress__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profile-progress__rank {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 24px;
+}
+
+.profile-progress__level {
+  padding: 2px 8px;
+  background: var(--color-gold);
+  border: 2px solid var(--color-input-border);
+  font-size: 22px;
+  line-height: 24px;
+  color: var(--color-link);
+}
+
+.profile-progress__xp {
+  font-size: 18px;
+  color: var(--color-muted);
+}
+
+.profile-progress__bar {
+  height: 16px;
+  padding: 3px;
+  background: var(--color-input-bg);
+  border: 2px solid var(--color-input-border);
+}
+
+.profile-progress__fill {
+  height: 6px;
+  background: var(--color-hero);
+}
+
+.profile-progress__hint {
+  margin: 0;
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--color-muted);
+}
+
+.profile-stats {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-stat {
+  display: flex;
+  flex: 1 0 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 78px;
+  background: var(--color-input-bg);
+  border: 2px solid var(--color-input-border);
+  box-shadow: 0 3px 0 0 var(--color-input-shadow);
+  white-space: nowrap;
+}
+
+.profile-stat__value {
+  font-family: var(--font-title);
+  font-size: 36px;
+  line-height: 36px;
+  color: var(--color-header);
+}
+
+.profile-stat__label {
+  font-size: 18px;
+  line-height: 20px;
+}
+
+/* Badges */
+
+.profile-badges {
+  gap: 14px;
+  padding-top: 4px;
+  padding-bottom: 24px;
+}
+
+.profile-badges__list {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-badge {
+  display: flex;
+  flex: 1 0 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.profile-badge__emblem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 60px;
+  margin-bottom: 5px;
+  background: var(--pixel-light);
+  border: 2px solid var(--color-input-border);
+  box-shadow: 0 3px 0 0 var(--color-input-shadow);
+}
+
+.profile-badge--locked .profile-badge__emblem {
+  background: var(--color-locked-bg);
+  border-color: var(--color-input-shadow);
+}
+
+.profile-badge__title {
+  font-size: 18px;
+  line-height: 20px;
+}
+
+.profile-badge__milestone {
+  font-size: 16px;
+  line-height: 18px;
+  color: var(--color-muted);
+}
+
+.profile-badge--locked .profile-badge__title {
+  color: var(--color-muted);
+}
+
+/* Quest log */
+
+.profile-log {
+  gap: 14px;
+  padding-bottom: 28px;
+}
+
+.profile-log__empty {
+  margin: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-input-shadow);
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--color-muted);
+}
+
+/* ---------- Player settings page ---------- */
+
+.settings-page {
+  min-height: calc(100dvh - var(--header-height));
+  padding-bottom: 100px; /* room for the fixed bottom nav */
+}
+
+.settings-page__content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+
+.settings-account {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 18px;
+  line-height: 20px;
+}
+
+.settings-account > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-account dt {
+  color: var(--color-muted);
+}
+
+.settings-account dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  color: var(--color-ink);
+}

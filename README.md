@@ -55,6 +55,12 @@ secret configuration. `data/` contains definitions and guidance, not live record
 ## Development
 - Backend API (Python/FastAPI): see [api/README.md](api/README.md) for verified commands
   (`pip install -e ".[dev]"`, `python -m app`, `pytest`). Runs offline with labeled mock data by default.
+- Frontend (Next.js App Router + Auth.js), from `web/`: copy `.env.example` to
+  `.env.local` and fill it in, then `npm install`, `npm run dev`
+  (http://localhost:3000), `npm run build`, `npm run typecheck`, `npm run lint`,
+  `npm test`. Needs a MongoDB reachable at `DATABASE_URL`. Built: landing, register,
+  sign-in, and protected Quests (home after sign-in) and Profile pages; it does not call the quest API yet.
+  Account schema: [data/ACCOUNTS.md](data/ACCOUNTS.md).
 - API routes, inputs and responses: [api/ROUTES.md](api/ROUTES.md).
 - Snowflake procedure `LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS` (deployed on a trial account): [snowflake/README.md](snowflake/README.md).
 - Configuration: one file, `.env` in this folder (template: [.env.example](.env.example)), read by the API and the Snowflake scripts.

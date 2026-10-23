@@ -1,0 +1,314 @@
+/* "LocalQuest friends" frame (2021:139). */
+
+.friends-page {
+  min-height: calc(100dvh - var(--header-height));
+  padding-bottom: 100px; /* room for the fixed bottom nav */
+}
+
+/* ---------- Banner ---------- */
+
+.friends-banner {
+  background: var(--color-hero);
+}
+
+.friends-banner__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 18px 32px 24px;
+}
+
+.friends-banner__heading {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 40px;
+  font-weight: normal;
+  line-height: 40px;
+  color: var(--color-white);
+}
+
+.friends-banner__ground {
+  height: 4px;
+  background: var(--color-gold);
+  border: 1px solid var(--color-input-border);
+}
+
+/* "+ Add friend": 48px-tall cream pixel button; its SVG frame is 52px tall (shadow). */
+.add-friend-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.add-friend-toggle__frame {
+  position: absolute;
+  inset: 0 0 auto 0;
+  width: 100%;
+  height: 52px;
+  pointer-events: none;
+}
+
+.add-friend-toggle__label {
+  position: relative;
+  font-family: var(--font-body);
+  font-size: 28px;
+  line-height: 30px;
+  color: var(--color-link);
+}
+
+.add-friend-toggle:active .add-friend-toggle__frame,
+.add-friend-toggle:active .add-friend-toggle__label,
+.add-friend-toggle[aria-expanded="true"] .add-friend-toggle__frame,
+.add-friend-toggle[aria-expanded="true"] .add-friend-toggle__label {
+  translate: 0 2px;
+}
+
+/* ---------- Add friend popup (2034:3) ---------- */
+
+.add-friend-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  padding: 16px;
+  background: var(--color-input-bg);
+  border: 3px solid var(--color-input-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 0 0 var(--color-shadow-deep);
+  font-family: var(--font-body);
+  color: var(--color-ink);
+}
+
+.add-friend-popup__title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 24px;
+  font-weight: normal;
+  line-height: 24px;
+}
+
+.add-friend-popup__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.add-friend-popup__field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 10px 12px;
+  background: var(--pixel-light);
+  border: 2px solid var(--color-input-border);
+  border-radius: 8px;
+}
+
+.add-friend-popup__field:focus-within {
+  outline: 3px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+.add-friend-popup__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--color-ink);
+}
+
+.add-friend-popup__input:focus {
+  outline: none;
+}
+
+.add-friend-popup__input::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+
+.add-friend-popup__submit {
+  height: 44px;
+  background: var(--color-hero);
+  border: 3px solid var(--color-input-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 0 0 var(--color-shadow-deep);
+  font-family: var(--font-body);
+  font-size: 22px;
+  line-height: 24px;
+  color: var(--color-white);
+  cursor: pointer;
+}
+
+.add-friend-popup__submit:active {
+  translate: 0 2px;
+  box-shadow: 0 2px 0 0 var(--color-shadow-deep);
+}
+
+.add-friend-popup__submit:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.add-friend-popup__message,
+.add-friend-popup__error {
+  margin: 0;
+  font-size: 18px;
+  line-height: 20px;
+}
+
+.add-friend-popup__message {
+  color: var(--color-link);
+}
+
+.add-friend-popup__error {
+  color: var(--color-header);
+}
+
+.add-friend-popup__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.add-friend-popup__choice {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--pixel-light);
+  border: 2px solid var(--color-input-border);
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--color-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.add-friend-popup__choice:hover,
+.add-friend-popup__choice:focus-visible {
+  background: var(--color-gold);
+}
+
+.add-friend-popup__handle {
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Lists ---------- */
+
+.friends-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 24px 32px 52px;
+  font-family: var(--font-body);
+  color: var(--color-ink);
+}
+
+.friends-section__heading {
+  margin: 0 0 4px;
+  font-family: var(--font-title);
+  font-size: 28px;
+  font-weight: normal;
+  line-height: 28px;
+}
+
+.friend-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.friend-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 80px;
+  border-bottom: 1px solid var(--color-input-shadow);
+}
+
+.friend-row__avatar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  background: var(--pixel-light);
+  border: 2px solid var(--color-input-border);
+  font-family: var(--font-title);
+  font-size: 28px;
+  line-height: 30px;
+  color: var(--color-header);
+}
+
+.friend-row__identity {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.friend-row__name {
+  font-family: var(--font-title);
+  font-size: 28px;
+  line-height: 28px;
+  overflow-wrap: anywhere;
+}
+
+.friend-row__handle {
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+.friend-row__actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.friend-row__actions .small-button {
+  padding: 2px 8px;
+  font-size: 18px;
+}
+
+.friend-row__pending {
+  font-size: 16px;
+  color: var(--color-muted);
+}
+
+.friends-empty {
+  margin: 0;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-input-shadow);
+  font-size: 18px;
+  line-height: 22px;
+  color: var(--color-muted);
+}
