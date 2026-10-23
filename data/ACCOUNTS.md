@@ -24,11 +24,8 @@ adapter defaults.
 A pair of players has at most one `friendships` document. Declining or cancelling a request
 deletes it; sending a request to someone who already sent you one accepts theirs. Players are
 found by exact username or exact name (case-insensitive), never by partial match.
-Either friend can remove an accepted friendship (deletes the document).
-
-Profile stats (quests done, places found, day streak, badges, friend count) are shown on
-your own card and to accepted friends at `/friends/<userId>`; other players see only the
-name, handle, picture, and join date. Stats come from the player's `quests` (see below).
+Accepted friends can view each other's player card (name, username, join month, picture,
+level/XP, stats, badges, and the names of completed quest stops); pending requests grant nothing.
 
 `users.avatarUpdatedAt` is set while an uploaded picture exists. The profile shows the
 uploaded picture first, then the Google account photo (`users.image`), then the default

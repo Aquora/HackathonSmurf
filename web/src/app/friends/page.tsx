@@ -12,18 +12,27 @@ import "@/features/friends/friends.css";
 
 export const metadata: Metadata = { title: "Friends · Local Quest" };
 
-function PlayerRow({ player, children }: { player: PlayerSummary; children?: ReactNode }) {
+function PlayerRow({ player, href, children }: { player: PlayerSummary; href?: string; children?: ReactNode }) {
+  const details = (
+    <>
+      <span className="friend-row__avatar" aria-hidden="true">
+        {initials(player.name)}
+      </span>
+      <span className="friend-row__identity">
+        <span className="friend-row__name">{player.name}</span>
+        {player.username && <span className="friend-row__handle">@{player.username}</span>}
+      </span>
+    </>
+  );
   return (
     <li className="friend-row">
-      <Link className="friend-row__link" href={`/friends/${player.id}`}>
-        <span className="friend-row__avatar" aria-hidden="true">
-          {initials(player.name)}
-        </span>
-        <span className="friend-row__identity">
-          <span className="friend-row__name">{player.name}</span>
-          {player.username && <span className="friend-row__handle">@{player.username}</span>}
-        </span>
-      </Link>
+      {href ? (
+        <Link className="friend-row__link" href={href}>
+          {details}
+        </Link>
+      ) : (
+        details
+      )}
       {children && <span className="friend-row__actions">{children}</span>}
     </li>
   );
@@ -83,7 +92,7 @@ export default async function FriendsPage() {
           {friends.length > 0 ? (
             <ul className="friend-list">
               {friends.map((player) => (
-                <PlayerRow key={player.id} player={player} />
+                <PlayerRow key={player.id} player={player} href={`/friends/${player.id}`} />
               ))}
             </ul>
           ) : (

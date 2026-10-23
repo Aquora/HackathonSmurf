@@ -112,3 +112,80 @@ test("send requests by username or name, then accept and cancel them", async ({ 
   await addFriend(alexPage, sam.username);
   await expect(popupStatus(alexPage)).toHaveText("You're already friends with Sam Rivera.");
 });
+
+test("clicking a friend opens their read-only player card; non-friends get a 404", async ({ browser }) => {
+  const id = `card_${Date.now().toString(36)}`;
+  const mongo = await new MongoClient(databaseUrl!).connect();
+  const db = mongo.db();
+  const passwordHash = await hash(password, { memoryCost: 19456, timeCost: 2, parallelism: 1 });
+  const [viewer, friend, stranger] = await Promise.all(
+    [
+      { name: "Riley Brooks", username: `${id}_viewer` },
+      { name: "Maya Chen", username: `${id}_friend` },
+      { name: "Noah Williams", username: `${id}_stranger` },
+    ].map(async (u) => {
+      const { insertedId } = await db.collection("users").insertOne({
+        ...u,
+        email: `${u.username}@example.com`,
+        emailVerified: null,
+        passwordHash,
+        createdAt: new Date("2026-06-15T12:00:00Z"),
+      });
+      return insertedId;
+    }),
+  );
+  const key = [viewer.toHexString(), friend.toHexString()].sort().join(":");
+  await db.collection("friendships").insertOne({
+    requesterId: viewer,
+    recipientId: friend,
+    pairKey: key,
+    status: "accepted",
+    createdAt: new Date(),
+    acceptedAt: new Date(),
+  });
+  // A finished quest for the friend, so their quest log has an entry.
+  await db.collection("quests").insertOne({
+    userId: friend,
+    request: "coffee and art",
+    route: {
+      startLocation: { address: "1 Main St" },
+      quests: [{ location: { name: "Demo Bean Coffee", address: "101 Example Ave", closingTime: "18:00" }, arrivalTime: "10:20", departureTime: "10:40", travelDistance: 1 }],
+      endLocation: { address: "1 Main St" },
+      estimatedCost: 5,
+    },
+    checkIns: [new Date()],
+    status: "done",
+    mock: true,
+    createdAt: new Date(),
+    completedAt: new Date(),
+  });
+  await mongo.close();
+
+  const page = await signedInPage(browser, `${id}_viewer`);
+  await page.locator(".friend-row__link", { hasText: "Maya Chen" }).click();
+  await expect(page).toHaveURL((url) => url.pathname === `/friends/${friend.toHexString()}`);
+
+  await expect(page.getByRole("heading", { name: "Player card" })).toBeVisible();
+  await expect(page.locator(".player-banner__name")).toHaveText("Maya Chen");
+  await expect(page.getByText(`@${id}_friend`)).toBeVisible();
+  await expect(page.getByText("Joined June 2026")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Badge collection" })).toBeVisible();
+  await expect(page.locator(".profile-log__item")).toHaveText("Demo Bean Coffee (demo)");
+  // Read-only: no edit, no quest links, no next-quest button.
+  await expect(page.getByRole("link", { name: "Edit profile" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Find your next quest" })).toHaveCount(0);
+  await expect(page.locator(".profile-log a")).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Friends" })).toHaveAttribute("aria-current", "page");
+
+  await page.getByRole("link", { name: "← Back to friends" }).click();
+  await expect(page).toHaveURL((url) => url.pathname === "/friends");
+
+  // Not a friend, or no such player: same 404.
+  for (const other of [stranger.toHexString(), "000000000000000000000000", "not-an-id"]) {
+    const response = await page.goto(`/friends/${other}`);
+    expect(response?.status()).toBe(404);
+  }
+  // Your own id goes to your own profile.
+  await page.goto(`/friends/${viewer.toHexString()}`);
+  await expect(page).toHaveURL((url) => url.pathname === "/profile");
+});
