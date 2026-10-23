@@ -9,8 +9,13 @@ as the demo is built. This checklist covers the hackathon demo only.
 - [ ] Confirm hosting and service accounts. Vercel (web) and Render (API) are
   earlier suggestions, not selected providers; coordinate hosting with the chosen
   component technologies in `ARCHITECTURE.md`: [TO FILL]
+- [ ] Select account database/auth service, configure backend access separately
+  from Snowflake access, and keep real records out of data/.
 - [ ] Record required environment variable **names and purposes** in example
   configuration; store values in the selected providers' secret settings.
+- [ ] Verify input-default configuration (90 minutes, $30, no preference), selected
+  currency, start/time fallback policy, ranking version, model version, and routing
+  access. Record bounded request/repair settings.
 - [ ] Confirm which services and datasets are live, simulated, or unavailable.
   Keep demo activity separate from real merchant metrics and redemptions.
 - [ ] Prepare the approved place data, its source/attribution, and a safe demo
@@ -31,9 +36,11 @@ as the demo is built. This checklist covers the hackathon demo only.
 ## Smoke check
 - [ ] Confirm the deployed app loads and the API health check succeeds. Exact
   URL and expected result: [TO FILL]
-- [ ] Complete the core journey: enter preferences, review them, generate a
-  feasible three-stop quest, inspect route facts, complete a simulated check-in,
+- [ ] Complete the core journey: enter preferences, inspect applied defaults, retrieve
+  up to 10 candidates, generate and verify an AI-planned three-stop quest, inspect facts, complete a simulated check-in,
   and see the passport and dashboard update.
+- [ ] Omit duration/budget/preferences and verify the configured defaults are shown;
+  verify an explicit zero budget is preserved and invalid supplied input is rejected.
 - [ ] Try an infeasible budget or time request and confirm it gives an honest
   explanation. Check that simulated data and offers are visibly labeled.
 - [ ] Confirm no smoke check creates a real merchant redemption. Record the
@@ -61,8 +68,9 @@ This is a proposed script, not a claim of working functionality.
 
 ### Short demonstration
 1. Explain the problem: finding an affordable, interesting short outing takes effort.
-2. Enter interests, time, and budget; show editable AI-extracted preferences.
-3. Generate a three-stop route from the curated neighborhood catalog.
+2. Enter interests, time, and budget; omit a field to show its disclosed default.
+3. Show Snowflake returning up to 10 candidates and AI proposing a three-stop order;
+   show the backend-verified route returned to the frontend as JSON.
 4. Explain one grounded challenge and its source place fact.
 5. Change a constraint and show a feasible new result or honest infeasibility response.
 6. Scan a simulated stop QR, earn a passport stamp, and show the analytics update.

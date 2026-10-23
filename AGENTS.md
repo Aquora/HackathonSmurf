@@ -13,7 +13,9 @@ below are relative to this folder, not the parent reusable starter.
 - Read `docs/PLAN.md` for the current phase, dependencies, and task ownership.
 - Read `docs/TEAM-CONTRACT.md` for proposed interfaces and data requirements.
   Draft proposals are not approved schemas; team ownership is in ARCHITECTURE.md.
-- Consult `docs/skills.md` for the team catalog and selection status.
+- Consult `docs/skills.md` for the team catalog and selection status. Project-local
+  skill copies are in `.skillls/<name>/SKILL.md`; read only relevant skills.
+  Copies do not guarantee native registration, tool access, or configured dependencies.
 - Follow the skill-selection guidance below and read the selected skill's actual
   `SKILL.md` before applying it.
 - Read `docs/Deployment.md` before hackathon deployment or migration work.
@@ -48,7 +50,8 @@ architecture after bootstrap. Update affected documents when decisions change.
 - `api/`: backend, business logic, integrations, and its local tests.
 - `contracts/`: authoritative API contracts and shared examples.
 - `snowflake/`: Snowflake schema changes and queries, when selected.
-- `data/`: small redistributable fixtures, with sources and license information.
+- `data/`: account-storage definitions/migrations and non-secret setup notes; never
+  actual credentials or user records. Snowflake owns the place catalog.
 - `docs/`: architecture, contracts, plan, testing, and deployment/demo guidance.
 - `tests/e2e/`: complete user-journey checks, when applicable.
 
@@ -117,7 +120,11 @@ that passed smoke checks. Update the plan and affected documentation before hand
 
 ## Local Quest-specific rules
 - Use docs/TEAM-CONTRACT.md and docs/TESTING.md when designing contracts or data.
-- Validate budget, walking duration, opening windows, and place IDs in code.
+- Backend normalizes omitted inputs to the configured defaults: 90 minutes, $30,
+  and no preference. Preserve valid overrides; reject invalid supplied values.
+- Snowflake returns up to 10 candidates; AI selects/orders only those candidate IDs.
+  Validate budget, walking duration, opening windows, and place IDs in code before
+  saving or returning a quest. Never treat model-generated totals as verification.
 - Ground AI challenges in approved facts; never invent discounts or partnerships.
 - Keep simulated check-ins and offers distinct from real merchant redemptions.
 - This documentation request does not authorize starting application implementation.

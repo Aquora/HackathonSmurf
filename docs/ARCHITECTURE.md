@@ -18,25 +18,83 @@ No component technology has been selected by this documentation change.
 
 ## Components
 - Web: preference form, map, route cards, passport, and authenticated dashboard.
-- API: input validation, preference parsing, candidate retrieval, route selection,
+- API: input validation/defaults, candidate retrieval, AI-plan orchestration,
   constraint validation, quest persistence, and idempotent check-ins.
-- Snowflake: curated catalog and analytics. No browser receives Snowflake credentials.
-- Model adapter: structured preference extraction and grounded narrative generation.
+- Snowflake: curated catalog, ranked top-10 candidate retrieval, and analytics. No browser receives Snowflake credentials.
+- Model adapter: candidate-based stop selection/order and grounded quest JSON generation.
 - Routing adapter: actual walking paths and durations; straight-line distance is
   only a shortlist filter, never proof of walking feasibility.
-- Operational store: durable quests, sessions, check-ins, and event delivery state;
+- Operational store/auth service: user accounts, durable quests, sessions, check-ins,
+  and event delivery state;
   engine undecided. Do not assume warehouse inserts provide transactional uniqueness.
 
 ## Generation flow
-1. Validate explicit form values; parsed AI preferences remain editable by the user.
-2. Query nearby candidates using price, interests, and relevant opening information.
-3. Select a small set of candidate three-stop routes and request walking durations.
-4. Evaluate complete routes including visits, arrival windows, budget, and end-point
-   behavior. Initial proposal: route ends at final stop; return-to-start is optional.
-5. If no route fits, return structured failure with adjustable constraints.
-6. Give the model only validated stops and approved facts to generate a theme and
-   challenges. Validate schema, identifiers, and factual references.
-7. Persist the validated quest and return it to the web interface.
+
+Owner-confirmed sequence: form → backend validation/defaults → Snowflake top 10
+→ AI quest proposal → backend verification/persistence → frontend JSON display.
+The existing three-stop quest remains the demo target; 10 is the candidate limit,
+not the number of stops. JSON is exchanged as payloads, not temporary files.
+
+1. Receive duration, budget, preferences, and starting-location/time context.
+2. Validate supplied values. Fill omitted duration with 90 minutes (5400 seconds),
+   budget with $30 (3000 minor units for a two-decimal dollar currency), and interests
+   with an empty list meaning no preference. Use one backend-owned configuration.
+   Return effective inputs and applied defaults so users can see and edit them.
+   Invalid supplied values do not silently become defaults. Currency code, start
+   fallback, timezone, and departure policy must be agreed before implementation;
+   never silently invent a location or substitute the server's timezone.
+3. Query Snowflake using effective location, preferences, duration, budget, and time
+   context. Filter eligible catalog records and rank deterministically; return at
+   most 10 distinct candidates with the parameters needed for planning. Fewer than
+   10 is valid; fewer than three cannot yield the current three-stop quest.
+4. Give the AI effective constraints and the candidate JSON. AI selects and orders
+   three candidate IDs and creates a themed quest with grounded challenges. The
+   proposed objective is relevance and shorter walking, subject to hard constraints;
+   define ranking/optimization rules before benchmarking. No global-optimality claim.
+5. Validate the AI schema, candidate membership, uniqueness, and factual references.
+   Obtain actual walking legs for its chosen order. Recompute costs, visits, arrival
+   times, opening-window checks, and total duration from trusted records/provider
+   data. Model-generated travel times or totals are never evidence of feasibility.
+6. If validation fails, allow at most one revised proposal using concrete failure
+   reasons and available measured legs, within a request time budget. Revalidate it.
+   A model failure is not proof no feasible route exists. Distinguish invalid-plan,
+   provider, insufficient-candidate, and demonstrated-infeasibility outcomes.
+7. Save only a validated quest; backend assigns IDs and constructs the authoritative
+   response JSON with effective constraints, defaults, route geometry, verified
+   calculations, source references, and simulation flags. Frontend renders it.
+
+## Planning efficiency and boundaries
+
+Use a bounded top-10 input to limit model context and latency. Request walking legs
+for proposed routes rather than prefetching every pair by default. Reuse measured
+legs within the request; cross-request caching depends on provider rights/freshness.
+Straight-line distance can inform candidate ranking but never verify walking time.
+If evaluation shows poor route quality, assess a bounded walking matrix or code-based
+comparison before expanding complexity or cost. Final optimization weights and
+quality/latency targets remain to be measured and agreed.
+
+Default values apply only to user-input omissions. Missing catalog hours, costs,
+facts, or coordinates must never be fabricated from those defaults. If a required
+application fallback is unconfigured, return a configuration error rather than a
+false quest. Return applied defaults even on post-normalization planning errors.
+
+
+## Catalog JSON and account storage
+
+Snowflake is the source of the approved place catalog. Its query result is passed
+directly to the backend and exposed by the adapter as CandidateSet JSON; the backend
+validates it and passes it to AI. No local place files or intermediate JSON files
+are required. Candidate data is handled in memory during planning. Saved quest
+snapshots and source/version references belong in operational storage as needed
+for playback and evaluation, not in repository files.
+
+`data/` is reserved for account-storage definitions/migrations and non-secret setup
+notes. Actual accounts live in a selected operational database/auth service. The
+backend handles authentication and session validation; the frontend must not read
+credential tables directly. If the app manages passwords, only secure hashes belong
+in the database. Service keys remain in server configuration/secret storage.
+Provider, session transport, login API, and account retention remain undecided;
+this change does not implement login or require it for every demo visitor.
 
 ## Check-in and analytics
 The API verifies session ownership and a valid stop token, then atomically records
@@ -48,7 +106,8 @@ verification. Exact operational storage and ingestion are open decisions.
 
 ## Resilience
 Use bounded timeouts/retries per provider. Invalid model output may receive one
-repair attempt, then fall back to approved template text or a clear failure.
+repair attempt, then a clear planning failure. Approved template text can replace
+invalid prose only when the underlying route has independently passed validation.
 Unavailable routing cannot silently become a verified walking route. Mark cached
 facts with their verification time and handle unknown opening hours explicitly.
 
@@ -66,8 +125,10 @@ needed; resolving Git conflicts alone cannot fix mismatched field names or logic
 
 ## Proposed folder layout
 
-The following is the intended layout once implementation is authorized. Existing
-root documents and `docs/` stay in place. Create other paths only when needed.
+The main work areas `web/`, `api/`, `snowflake/`, `contracts/`, `data/`, and
+`tests/` now exist with only an AGENTS.md contributor guide in each. Existing root
+documents and `docs/` remain. The tree below shows possible future internal paths,
+not files already created. Add nested directories only when implementation needs them.
 The internal source layout can be adjusted after the framework choices are confirmed.
 
 ```text
@@ -103,10 +164,9 @@ local-quest/
 │   ├── openapi.yaml            HTTP requests, responses, and error schemas
 │   ├── schemas/                Shared place, event, and AI boundary schemas
 │   └── examples/               Shared synthetic success and failure examples
-├── data/                       Small approved data and provenance records
-│   ├── fixtures/               Synthetic catalog inputs used by tests
-│   ├── curated/                Approved redistributable neighborhood records
-│   └── SOURCES.md              Sources, rights, attribution, verification dates
+├── data/                       Account-storage definitions, never live credentials
+│   ├── AGENTS.md               Account-storage contributor boundaries
+│   └── migrations/            Account schema changes, only if the chosen store needs them
 ├── tests/
 │   ├── contracts/              Producer/consumer compatibility checks
 │   └── e2e/                    Complete cross-component user journeys
@@ -118,9 +178,11 @@ local-quest/
     └── CODEOWNERS              Review ownership, if GitHub is selected
 ```
 
-`contracts/examples/` contains messages exchanged between components.
-`data/fixtures/` contains source records used to produce those messages. Reuse
-stable fixture IDs and reference files rather than copying competing datasets.
+`contracts/examples/` contains shared synthetic messages exchanged between components.
+Synthetic catalog inputs for tests belong under the relevant test fixtures; reuse
+stable IDs and references rather than copying competing datasets. Source/rights
+metadata for real places is maintained with the Snowflake catalog; ingestion and
+provenance procedures belong to the Snowflake owner.
 
 Do not add a separate AI server just to give an AI teammate a folder. Initially,
 `api/app/ai/` provides a clear ownership area within the proposed backend. A separate
@@ -130,7 +192,7 @@ service would require a justified architecture decision and another interface.
 
 ### Frontend and design contributor
 
-Owns `web/`. Builds preference entry/confirmation, map and stop cards, passport,
+Owns `web/`. Builds preference entry and applied-default display, map and stop cards, passport,
 dashboard presentation, and loading/error/empty states. Uses the shared contract
 examples while the backend is being built. Does not invent response fields, call
 Snowflake directly, or become the authority on budget and route feasibility.
@@ -151,8 +213,8 @@ failures, and duplicate check-ins behave correctly under controlled tests.
 ### AI contributor, if there is a separate teammate
 
 Owns `api/app/ai/` and `api/tests/ai/`, explicitly excluded from the backend
-contributor's concurrent editing scope. Builds preference extraction and grounded
-challenge generation using approved inputs and structured outputs.
+contributor's concurrent editing scope. Builds route proposals and grounded
+challenges using effective constraints and only the top-10 candidate records.
 
 Acceptance: agreed evaluations cover valid output, invented facts/IDs, hostile
 retrieved text, and timeout/repair/fallback behavior. Model and prompt versions
@@ -160,13 +222,23 @@ and actual results are recorded.
 
 ### Snowflake and data contributor
 
-Owns `snowflake/` and assigned `data/` paths. Defines catalog objects, curated
-records, parameterized queries, and deduplicated analytics views. Coordinates
+Owns `snowflake/`. Defines catalog objects, curated
+records, parameterized ranked top-10 queries, and deduplicated analytics views. Coordinates
 query-result shapes with the backend owner. The backend owner retains the
 Snowflake connection adapter unless a task explicitly assigns it elsewhere.
 
 Acceptance: dataset rights and verification are recorded; query outputs match
 the agreed shapes; simulated events and repeated event IDs cannot inflate real metrics.
+
+### Account-storage contributor
+
+Owns `data/`: account-storage definitions, migrations if needed, and non-secret
+setup notes. Coordinates with the backend owner, who implements login/session
+handlers and storage adapters. A teammate may hold both roles. The choice of a
+managed auth service or application-managed accounts remains open.
+
+Acceptance: ownership IDs and schema changes agree with backend behavior; no live
+credentials, account records, session tokens, or database dumps enter the repository.
 
 ### Integration lead
 
@@ -240,7 +312,8 @@ for the first slice. Roles may be combined; no particular team size is assumed.
 ## Open decisions and history
 
 Operational database, session/auth design, provider selection, ingestion frequency,
-retention, latency targets, and release costs remain open.
+retention, ranking weights, optimization targets, default currency, start/time
+fallbacks, latency targets, and release costs remain open.
 
 - 2026-10-22: Local Quest documentation isolated from the reusable parent starter.
 - 2026-10-23: release target scoped to a verified hackathon demo; team ownership and
