@@ -349,3 +349,20 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
   persistence, check-ins, auth, approved-facts grounding.
 - **Mocks:** default for local dev; responses carry `mock: true`; refused in production
   unless `ALLOW_MOCK_IN_PRODUCTION=true`.
+
+- Owner finalized top-10 retrieval followed by AI route planning. Missing duration
+  defaults to 90 minutes, budget to $30, and preferences to none. Backend remains
+  responsible for final validation and authoritative response assembly.
+- 2026-10-23: Snowflake retrieval design proposed in `snowflake/PLAN.md`: Marketplace
+  POIs plus curated overlay, OSM opening hours (unknown hours excluded), search centered
+  on the user's location, Cortex Arctic embeddings for preferences, and a stored
+  procedure returning a top-10 CandidateSet. New PlaceRecord fields await contract review.
+- 2026-10-23: GET_CANDIDATES implemented as a Python stored procedure (not Snowflake
+  Scripting) so hours/validation/ranking logic is unit-testable locally; SQL performs
+  the H3/spatial search and Cortex similarity. Undeployed.
+- 2026-10-23: Trial Snowflake accounts block all Cortex AI functions, so preference
+  matching switched to keyword/synonym matching (ranking_version sf_keyword_v1).
+  Revisit embeddings if the account is upgraded.
+- 2026-10-23: Active account switched to one where Cortex works; matching is now hybrid
+  (keyword/synonym or AI_EMBED top-k category closeness, whichever is higher), with
+  automatic keyword-only fallback where AI_EMBED is blocked.
