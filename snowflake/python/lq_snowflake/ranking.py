@@ -1,4 +1,8 @@
-"""Filter by opening hours, score, and assemble the CandidateSet."""
+"""Filter by opening hours, score, and assemble the result for the API.
+
+The API reads ``locations`` and requires exactly 10 unique items, each with
+``name``, ``address``, and ``closingTime`` ("HH:MM"); extra fields are ignored.
+"""
 
 from datetime import date, datetime, timezone
 
@@ -6,33 +10,46 @@ from . import settings
 from .hours import expand_intervals, longest_open_seconds
 
 
-def search_radius_m(available_seconds):
-    """Straight-line search radius; never evidence of walking feasibility."""
-    return min(settings.MAX_RADIUS_M, settings.WALKING_SPEED_MPS * available_seconds / 2)
+def search_radius_m(available_seconds, travel_method):
+    """Straight-line search radius; never evidence of travel feasibility."""
+    speed, cap = settings.TRAVEL[travel_method]
+    return min(cap, speed * available_seconds / 2)
 
 
-def build_candidate_set(request, rows, weekly_by_place, retrieved_at):
-    """``rows`` are nearby places (lower-case keys) with their best preference match."""
-    radius = search_radius_m(request.available_seconds)
-    scored = []
+def build_locations(request, rows, weekly_by_place, retrieved_at):
+    """``rows`` are open-hours-known places within FILL_RADIUS_M with their best match.
+
+    Places inside the travel radius come first, by score. If they are fewer than
+    the limit, the rest are filled with farther open places, by score then distance.
+    """
+    radius = search_radius_m(request.available_seconds, request.travel_method)
+    inside, outside = [], []
     for row in rows:
-        candidate = _evaluate(row, request, radius, weekly_by_place.get(row["place_id"]))
-        if candidate is not None:
-            scored.append(candidate)
+        scored = _evaluate(row, request, radius, weekly_by_place.get(row["place_id"]))
+        if scored is not None:
+            (inside if scored[1]["distance_m"] <= radius else outside).append(scored)
 
-    scored.sort(key=lambda item: (-item[0], item[1]["distance_m"], item[1]["place_id"]))
-    candidates = []
-    for rank, (_, candidate) in enumerate(scored[:request.limit], start=1):
-        candidate["rank"] = rank
-        candidates.append(candidate)
+    key = lambda item: (-item[0], item[1]["distance_m"], item[1]["place_id"])  # noqa: E731
+    chosen = sorted(inside, key=key)[:request.limit]
+    fill = sorted(outside, key=key)[:request.limit - len(chosen)]
+    for _, location in fill:
+        location["within_radius"] = False
+        location["match_reasons"].append(
+            f"beyond the usual {request.travel_method} range (~{int(radius)} m); added to reach "
+            f"{request.limit} open places")
+
+    locations = []
+    for rank, (_, location) in enumerate(chosen + fill, start=1):
+        location["rank"] = rank
+        locations.append(location)
 
     return {
         "request_id": request.request_id,
         "retrieved_at": retrieved_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "ranking_version": settings.RANKING_VERSION,
         "constraints": request.constraints,
-        "candidate_count": len(candidates),
-        "candidates": candidates,
+        "location_count": len(locations),
+        "locations": locations,
     }
 
 
@@ -43,20 +60,33 @@ def _evaluate(row, request, radius, weekly):
     if longest_open_seconds(intervals, request.window_start, request.window_end) < settings.MIN_OPEN_SECONDS:
         return None
 
+    # The interval the user can actually use: the longest open stretch inside the window.
+    _, closes_at = max(intervals, key=lambda iv: longest_open_seconds(
+        [iv], request.window_start, request.window_end))
     dist_m = float(row["dist_m"])
     sim = float(row["sim"]) if row.get("sim") is not None and request.interests else 0.0
     closeness = max(0.0, 1.0 - dist_m / radius) if radius > 0 else 0.0
     score = round(settings.W_SIM * sim + settings.W_DIST * closeness, 6)
     tags = list(row.get("tags") or [])
 
+    latitude, longitude = float(row["latitude"]), float(row["longitude"])
+
     return score, {
         "rank": None,
-        "place_id": row["place_id"],
         "name": row["name"],
+        # OSM has no street address for some places; coordinates are a real, usable location.
+        "address": row.get("address") or f"{latitude:.6f}, {longitude:.6f}",
+        "closingTime": closes_at.strftime("%H:%M"),
+        # OSM has no prices: a labeled category estimate (APP.CATEGORY_COST), or None.
+        "estimatedCost": None if row.get("cost_usd") is None else round(float(row["cost_usd"]), 2),
+        "costBasis": (None if row.get("cost_usd") is None else
+                      f"category estimate: typical spend at a '{row['cost_label']}', "
+                      f"not this place's actual price"),
+        "place_id": row["place_id"],
         "tags": tags,
-        "coordinates": {"latitude": float(row["latitude"]), "longitude": float(row["longitude"])},
+        "coordinates": {"latitude": latitude, "longitude": longitude},
         "distance_m": int(round(dist_m)),
-        "address": row.get("address"),
+        "within_radius": True,
         "website": row.get("website"),
         "opening_intervals": [
             {"opens_at": o.isoformat(timespec="seconds"), "closes_at": c.isoformat(timespec="seconds")}

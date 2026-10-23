@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from . import settings
-from .ranking import build_candidate_set, search_radius_m
+from .ranking import build_locations
 from .request import parse_request
 
 NEARBY_SQL = """
@@ -71,15 +71,23 @@ semantic_match AS (
     -- Fallback only: skip interests that already have a keyword match nearby.
     WHERE sr.interest NOT IN (SELECT interest FROM keyword_match WHERE sim > 0)
 ),
+cost AS (
+    SELECT pt.place_id, MAX(c.usd) AS usd, MAX_BY(c.label, c.usd) AS cost_label
+    FROM place_tags pt
+    JOIN APP.CATEGORY_COST c ON c.label = pt.label
+    GROUP BY pt.place_id
+),
 best AS (
     SELECT place_id, label, interest, kind, sim
     FROM (SELECT * FROM keyword_match UNION ALL SELECT * FROM semantic_match)
     WHERE sim > 0
     QUALIFY ROW_NUMBER() OVER (PARTITION BY place_id ORDER BY sim DESC, kind, label, interest) = 1
 )
-SELECT n.*, b.sim, b.label AS sim_label, b.interest AS sim_interest, b.kind AS sim_kind
+SELECT n.*, b.sim, b.label AS sim_label, b.interest AS sim_interest, b.kind AS sim_kind,
+       c.usd AS cost_usd, c.cost_label
 FROM near n
-LEFT JOIN best b ON b.place_id = n.place_id""".replace("{model}", settings.EMBED_MODEL)
+LEFT JOIN best b ON b.place_id = n.place_id
+LEFT JOIN cost c ON c.place_id = n.place_id""".replace("{model}", settings.EMBED_MODEL)
 
 HOURS_SQL = """
 SELECT place_id, day_of_week, open_minute, close_minute
@@ -108,7 +116,7 @@ def find_quest_locations(session, request, address):
     req = parse_request(payload, address, datetime.now(ZoneInfo(settings.TIMEZONE)), locate)
 
     rows = _rows(session.sql(NEARBY_SQL, params=[
-        req.longitude, req.latitude, search_radius_m(req.available_seconds),
+        req.longitude, req.latitude, settings.FILL_RADIUS_M,
         json.dumps(list(req.interests)),
         settings.SEMANTIC_TOP_K, settings.SEMANTIC_FLOOR, settings.SEMANTIC_CAP,
     ]))
@@ -124,7 +132,7 @@ def find_quest_locations(session, request, address):
             "close_minute": int(row["close_minute"]),
         })
 
-    return build_candidate_set(req, rows, weekly, datetime.now(timezone.utc))
+    return build_locations(req, rows, weekly, datetime.now(timezone.utc))
 
 
 def _rows(dataframe):

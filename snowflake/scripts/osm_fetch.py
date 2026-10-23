@@ -104,6 +104,8 @@ def to_address_records(payload):
 
 
 def address(tags):
+    if not tags.get("addr:street"):
+        return None  # a bare house number is not a usable address
     street = " ".join(p for p in (tags.get("addr:housenumber"), tags.get("addr:street")) if p)
     parts = [p for p in (street, tags.get("addr:city"), tags.get("addr:postcode")) if p]
     return ", ".join(parts) or None

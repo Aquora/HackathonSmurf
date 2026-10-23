@@ -12,9 +12,11 @@ Commands, in first-run order:
                               run the API's exact call and print the result:
                               CALL LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS(PARSE_JSON(<json>), <address>)
 
-Connection settings come from environment variables or snowflake/.env:
-SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER (login name), SNOWFLAKE_PRIVATE_KEY_PATH,
-optional SNOWFLAKE_PRIVATE_KEY_PASSPHRASE, and LQ_DB (default LOCAL_QUEST, the name the API calls).
+Connection settings come from environment variables or the project's main .env
+(local-quest/.env, shared with the API): SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER (login
+name), SNOWFLAKE_PRIVATE_KEY_PATH, optional SNOWFLAKE_PRIVATE_KEY_PASSPHRASE, and
+SNOWFLAKE_DATABASE (default LOCAL_QUEST). Admin commands always use role LQ_OWNER
+and warehouse LQ_WH, not the API's SNOWFLAKE_ROLE.
 """
 
 import argparse
@@ -34,13 +36,15 @@ IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]*$")
 
 
 def load_env():
-    env_file = ROOT / ".env"
+    env_file = ROOT.parent / ".env"
     if env_file.exists():
         for line in env_file.read_text().splitlines():
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 key, value = line.split("=", 1)
-                os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+                value = value.split(" #", 1)[0].strip().strip('"').strip("'")  # inline comment
+                if value:
+                    os.environ.setdefault(key.strip(), value)
 
 
 def connect():
@@ -49,7 +53,7 @@ def connect():
     missing = [k for k in ("SNOWFLAKE_ACCOUNT", "SNOWFLAKE_USER", "SNOWFLAKE_PRIVATE_KEY_PATH")
                if not os.environ.get(k)]
     if missing:
-        sys.exit(f"missing settings: {', '.join(missing)} (see snowflake/.env.example)")
+        sys.exit(f"missing settings: {', '.join(missing)} (see local-quest/.env.example)")
     params = {
         "account": os.environ["SNOWFLAKE_ACCOUNT"],
         "user": os.environ["SNOWFLAKE_USER"],
@@ -65,9 +69,9 @@ def connect():
 
 
 def lq_db():
-    name = os.environ.get("LQ_DB", "LOCAL_QUEST")
+    name = os.environ.get("SNOWFLAKE_DATABASE") or "LOCAL_QUEST"
     if not IDENTIFIER.match(name):
-        sys.exit("LQ_DB must be a plain identifier")
+        sys.exit("SNOWFLAKE_DATABASE must be a plain identifier")
     return name
 
 

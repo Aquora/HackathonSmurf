@@ -378,3 +378,10 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
 - 2026-10-23: Snowflake entry point is LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS(request VARIANT,
   address STRING) to match the API. Address geocoded against OSM addresses in Snowflake
   because the trial account blocks external network access.
+- 2026-10-23: API connected to Snowflake. Single project .env. Snowflake returns exactly 10
+  open places (filling beyond the travel radius when needed) shaped as the API's Location
+  (name, address, closingTime, estimatedCost). Costs are labeled category estimates
+  (APP.CATEGORY_COST) because OSM has no prices and the API enforces budget per stop.
+- 2026-10-23: API model step can run on Snowflake Cortex AI_COMPLETE (AI_PROVIDER=snowflake,
+  open-weight llama3.3-70b), sharing the Snowflake pool. Cursor's API keys only reach the
+  Cloud Agents API (Pro plan), which has no chat-completions endpoint.

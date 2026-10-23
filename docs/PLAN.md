@@ -108,3 +108,10 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
 - [x] Matched the API's call LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS(json, address) on 2026-10-23;
   geocoding uses OSM addresses in Snowflake (trial blocks external access). Verified the
   exact call and error cases as LQ_APP_RO; dropped LOCAL_QUEST_DEV.
+- [x] Connected api/ to Snowflake on 2026-10-23: one project .env (template .env.example),
+  procedure returns {locations:[10]} with closingTime and labeled category-estimate costs,
+  travel-method radius and fill-to-10. End-to-end POST /v1/quests verified with real
+  Snowflake data and the mock AI step; 73 API tests pass.
+- [x] Model step runs on Snowflake Cortex (AI_PROVIDER=snowflake, llama3.3-70b) on 2026-10-23,
+  because the team's Cursor key is on a free plan (Cursor API requires Pro). Full quest verified
+  end to end with no mocks (~24 s); 78 API tests pass.

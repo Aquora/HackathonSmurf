@@ -56,7 +56,8 @@ secret configuration. `data/` contains definitions and guidance, not live record
 - Backend API (Python/FastAPI): see [api/README.md](api/README.md) for verified commands
   (`pip install -e ".[dev]"`, `python -m app`, `pytest`). Runs offline with labeled mock data by default.
 - API routes, inputs and responses: [api/ROUTES.md](api/ROUTES.md).
-- Snowflake procedure (not yet run against an account): [snowflake/find_quest_locations.sql](snowflake/find_quest_locations.sql).
+- Snowflake procedure `LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS` (deployed on a trial account): [snowflake/README.md](snowflake/README.md).
+- Configuration: one file, `.env` in this folder (template: [.env.example](.env.example)), read by the API and the Snowflake scripts.
 
 No live services have been provisioned or verified yet.
 

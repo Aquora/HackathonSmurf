@@ -101,6 +101,37 @@ ON t.interest = s.interest AND t.label = s.label
 WHEN MATCHED THEN UPDATE SET weight = s.weight
 WHEN NOT MATCHED THEN INSERT (interest, label, weight) VALUES (s.interest, s.label, s.weight);
 
+-- Typical per-person spend by category, in US dollars. OSM has no prices, and the
+-- API needs a cost per stop, so places get a labeled CATEGORY ESTIMATE (the highest
+-- estimate among their tags), never presented as the place's own price. Categories
+-- with no sensible visit spend (car repair, storage, phone shops, banks...) are left
+-- out, so those places keep estimatedCost = null and the API won't use them as stops.
+-- Rough planning figures for 2026, editable with MERGE (no redeploy needed).
+CREATE TABLE IF NOT EXISTS CATEGORY_COST (
+    label  STRING NOT NULL,
+    usd    FLOAT NOT NULL
+);
+
+MERGE INTO CATEGORY_COST t
+USING (
+    SELECT column1 AS label, column2 AS usd FROM VALUES
+    ('cafe', 6), ('coffee shop', 6), ('bubble tea', 7), ('juice', 7), ('ice cream', 6),
+    ('frozen yogurt', 7), ('bakery shop', 6), ('deli shop', 10), ('cheese shop', 12),
+    ('fast food', 11), ('burger', 12), ('sandwich', 11), ('chicken', 12), ('pizza', 14),
+    ('mexican', 14), ('tex-mex', 14), ('chinese', 15), ('thai', 16), ('indian', 17),
+    ('noodle', 15), ('asian', 15), ('american', 18), ('italian', 20), ('barbecue', 20),
+    ('latin american', 15), ('breakfast', 15), ('restaurant', 20),
+    ('bar', 15), ('pub', 18), ('nightclub', 20),
+    ('library', 0), ('museum', 10), ('park', 0), ('community centre', 0), ('food sharing', 0),
+    ('gift shop', 15), ('florist shop', 15), ('candles shop', 15), ('clothes shop', 25),
+    ('video games shop', 20), ('amusement arcade', 15), ('fitness centre', 15),
+    ('events venue', 25), ('garden centre shop', 15), ('supermarket shop', 8),
+    ('convenience shop', 5), ('variety store shop', 8), ('department store shop', 20)
+) s
+ON t.label = s.label
+WHEN MATCHED THEN UPDATE SET usd = s.usd
+WHEN NOT MATCHED THEN INSERT (label, usd) VALUES (s.label, s.usd);
+
 -- Cortex embeddings of category labels (filled by sql/04_load.sql).
 CREATE TABLE IF NOT EXISTS CATEGORY_EMBEDDING (
     label        STRING NOT NULL,

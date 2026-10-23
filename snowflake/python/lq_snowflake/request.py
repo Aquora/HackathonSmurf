@@ -6,8 +6,9 @@ The API calls ``FIND_QUEST_LOCATIONS(request VARIANT, address STRING)`` with::
      "locationPreference": "coffee, art", "travelMethod": "walk"}
 
 Errors raise ``LQ_INVALID_INPUT: <field>: <reason>``. The window starts now in
-Pomona time. Budget is validated and echoed but not used for filtering:
-OpenStreetMap has no prices.
+Pomona time. Unknown travel methods search with the walking radius. Budget is
+validated and echoed but not used for filtering; costs are category estimates
+(APP.CATEGORY_COST) that the API checks against the budget.
 """
 
 import uuid
@@ -36,6 +37,7 @@ class Request:
     timezone: str
     available_seconds: int
     interests: tuple
+    travel_method: str
 
 
 def parse_request(payload, address, now, locate):
@@ -70,8 +72,10 @@ def parse_request(payload, address, now, locate):
         raise InvalidInput("locationPreference", f"at most {settings.MAX_INTERESTS} preferences")
 
     travel = payload.get("travelMethod")
-    if not isinstance(travel, str) or travel.strip().lower() not in settings.TRAVEL_METHODS:
-        raise InvalidInput("travelMethod", f"supported: {', '.join(settings.TRAVEL_METHODS)}")
+    if not isinstance(travel, str) or not travel.strip():
+        raise InvalidInput("travelMethod", "must be a string such as walk, bike, transit, or drive")
+    travel = travel.strip().lower()
+    method = travel if travel in settings.TRAVEL else settings.DEFAULT_TRAVEL
 
     if not isinstance(address, str) or not address.strip() or len(address) > settings.MAX_ADDRESS_LENGTH:
         raise InvalidInput("address", "must be a street address")
@@ -96,7 +100,8 @@ def parse_request(payload, address, now, locate):
             "available_seconds": available,
             "budget": {"amount_minor": int(round(budget * 100)), "currency": settings.CURRENCY},
             "interests": interests,
-            "travel_method": travel.strip().lower(),
+            "travel_method": travel,
+            "radius_travel_method": method,
         },
         latitude=latitude,
         longitude=longitude,
@@ -105,6 +110,7 @@ def parse_request(payload, address, now, locate):
         timezone=settings.TIMEZONE,
         available_seconds=available,
         interests=tuple(interests),
+        travel_method=method,
     )
 
 

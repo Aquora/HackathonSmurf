@@ -1,21 +1,30 @@
 """Ranking and matching settings. Change RANKING_VERSION when any value changes."""
 
-RANKING_VERSION = "osm_hybrid_v3"
+RANKING_VERSION = "osm_hybrid_v5"
 
 # Score = W_SIM * preference match + W_DIST * closeness (1 at the start, 0 at the radius edge).
 W_SIM = 0.7
 W_DIST = 0.3
 
-# Straight-line search radius: half the time budget at walking speed, capped.
-MAX_RADIUS_M = 2000
-WALKING_SPEED_MPS = 1.3
+# Straight-line search radius per travel method: speed (m/s) x half the time, capped (m).
+# Unknown methods use walk.
+TRAVEL = {
+    "walk": (1.3, 2000),
+    "bike": (4.0, 6000),
+    "transit": (6.0, 8000),
+    "drive": (11.0, 15000),
+}
+DEFAULT_TRAVEL = "walk"
+
+# The API needs exactly RESULT_LIMIT places. If too few open places fall inside the
+# radius, fill from farther open places within this distance (covers all of Pomona).
+FILL_RADIUS_M = 25000
 
 # A place must stay open this long, continuously, inside the user's time window.
 MIN_OPEN_SECONDS = 1200
 
-# API request (FIND_QUEST_LOCATIONS): times are "now" in Pomona; walking only for now.
+# API request (FIND_QUEST_LOCATIONS): times are "now" in Pomona.
 TIMEZONE = "America/Los_Angeles"
-TRAVEL_METHODS = ("walk",)
 RESULT_LIMIT = 10
 MAX_DESIRED_MINUTES = 1440
 MAX_INTERESTS = 5
