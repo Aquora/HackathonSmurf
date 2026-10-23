@@ -1,6 +1,6 @@
 # Local Quest project brief
 
-Status: proposed project specification for review. This folder develops the Local
+Status: generation workflow confirmed by the owner; remaining scope details are proposed. This folder develops the Local
 Quest option without selecting it for the parent reusable starter.
 
 ## Product
@@ -15,17 +15,19 @@ challenges, and a digital passport.
 ## Proposed first demo
 - One walkable neighborhood; the exact area remains undecided.
 - 10–15 curated locations with documented sources and checked opening hours.
-- Preference form with optional natural-language input.
+- Form for duration, budget, and preferences; missing values use disclosed defaults.
 - Three-stop quest with map, estimated spending, travel/visit time, and explanations.
 - QR-based simulated check-ins and passport stamps.
 - Dashboard distinguishing quest appearances, check-ins, and verified redemptions.
-- Meaningful Snowflake retrieval/analytics and open-weight AI interpretation and
-  challenge generation.
+- Meaningful Snowflake top-10 retrieval/analytics and open-weight AI route planning
+  and challenge generation.
 
 ## Core journey
-1. Enter a starting point, departure time, available minutes, budget, and interests.
-2. Review/edit preferences extracted from free text.
-3. Generate a feasible quest and inspect stop information and assumptions.
+1. Enter duration, budget, and preferences, with starting-location/time context.
+2. Backend validates supplied values and fills missing duration with 90 minutes,
+   budget with $30, and interests with no preference; disclose applied defaults.
+3. Snowflake returns up to 10 ranked candidates. AI selects and orders three stops;
+   backend verifies the proposal and returns a saved quest as JSON for display.
 4. Follow the walking route and complete stop challenges/check-ins.
 5. See passport progress and resulting business engagement metrics.
 
@@ -48,8 +50,10 @@ challenges, and a digital passport.
 - Demo data and simulated activity are visibly labeled and excluded from real metrics.
 
 ## AI value
-Interpret flexible preferences and create a themed adventure from approved facts.
-Code owns constraints, authorization, costs, routing, and reward eligibility.
+Select and order stops from Snowflake candidates to propose an efficient, relevant
+quest, with challenges grounded in approved facts. Code verifies feasibility using
+actual walking routes and catalog values; it owns authorization and reward eligibility.
+The route is an AI-assisted proposal, not a guarantee of a global mathematical optimum.
 
 ## Hackathon target
 Complete the scoped journey with labeled simulations where needed. Use
@@ -57,7 +61,8 @@ Complete the scoped journey with labeled simulations where needed. Use
 Public pilot and production scope will be decided separately if pursued.
 
 ## Decisions for the owner
-- Neighborhood and data sources: [TO FILL]
+- Neighborhood, starting-location fallback, currency code for the $30 default,
+  departure-time policy, and data sources: [TO FILL]
 - Team size, event deadline, and allowed advance preparation: [TO FILL]
 - Budget, expected traffic, and latency target: [TO FILL]
 - Authentication, deployment accounts, model runtime, and project license: [TO FILL]

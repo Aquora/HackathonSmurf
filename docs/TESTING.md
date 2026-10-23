@@ -11,7 +11,16 @@ Status: planned checks; none have run against an application.
 See TEAM-CONTRACT.md for the proposed contract freeze and acceptance gate.
 
 ## Critical behavior
-- Valid request yields three unique known stops and a consistent route breakdown.
+- Valid request yields three unique stops from the retrieved candidate set and a
+  consistent route breakdown.
+- Omitted duration/budget/interests resolve to 5400 seconds/$30/no preference; valid
+  overrides and an explicit zero budget survive normalization. Default currency
+  must be configured. Invalid supplied values produce validation errors.
+- Responses disclose effective constraints, applied defaults, and defaults version.
+  Missing start/time context without an agreed fallback fails explicitly.
+- Candidate ranking is stable with tie-breakers, caps at 10, and returns no duplicates;
+  fewer than 10 is supported, fewer than three is handled without fabricated stops.
+- Default values never replace unknown place hours, coordinates, or costs.
 - Walking plus visit durations fit the available time under disclosed estimates.
 - Estimated cost fits budget; currency conversion is not silently assumed.
 - Arrival and departure fall within opening intervals, including timezone boundaries.
@@ -24,12 +33,21 @@ See TEAM-CONTRACT.md for the proposed contract freeze and acceptance gate.
 ## AI evaluation fixtures
 Include vague preferences, contradictory constraints, hostile text in a retrieved
 place description, invalid JSON output, invented place IDs, invented discounts,
-and provider timeout. Require valid schema and approved fact references. Record
+out-of-candidate-set IDs, duplicate stops, impractical ordering, false cost/time
+totals, and provider timeout. Test one repair attempt and exhausted repair. Require
+valid schema and approved fact references. Independently calculate feasibility;
+model failure must not be reported as proof that no feasible route exists. Record
 model identifier/version, prompt version, inputs, expected behavior, and results.
-Define quality/latency thresholds after a baseline run; do not invent pass rates.
+For each case record normalized constraints/default version, candidate/ranking
+version, selected order, measured walking time, interest coverage, validation
+outcome, number of model/provider calls, and end-to-end latency. Compare against
+a small controlled feasible-route baseline within the same candidate set to assess
+route quality; do not claim global optimality. Define quality/latency thresholds
+after a baseline run; do not invent pass rates.
 
 ## End-to-end
-Form -> preference confirmation -> quest -> map/cards -> check-in -> passport ->
+Form -> validation/defaults -> Snowflake candidates -> AI proposal -> backend
+route verification -> saved quest JSON -> map/cards/default display -> check-in -> passport ->
 dashboard, using isolated test data. Include narrow-screen and keyboard navigation
 checks and understandable loading/error states.
 

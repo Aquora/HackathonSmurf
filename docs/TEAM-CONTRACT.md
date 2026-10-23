@@ -1,8 +1,9 @@
 # Proposed shared contract for contributors and AI assistants
 
-Status: draft `0.1`, October 23, 2026. This is a concrete proposal for agreement,
+Status: draft `0.2`, October 23, 2026. This is a concrete proposal for agreement,
 not an implemented API, validated schema, or authorization to start coding.
-Field names below are proposed so teams can review a specific interface.
+The generation sequence and 90-minute/$30/no-preference defaults are owner-confirmed.
+Field names and remaining settings are proposed for interface review.
 
 ## 1. Shared product promise
 
@@ -11,7 +12,7 @@ stops, feasible estimated spending and duration, grounded challenges, simulated
 check-ins, a passport, and authorized business engagement metrics.
 
 Code owns route feasibility, validation, ownership, and completion integrity.
-AI interprets preferences and writes grounded content. Never represent a fixture,
+AI selects and orders candidate stops and writes grounded quest content. Never represent a fixture,
 estimate, simulated check-in, or unverified offer as a verified real-world outcome.
 
 ## 2. Sources of truth
@@ -44,8 +45,9 @@ Backend domain logic consumes normalized place and route records through adapter
 It does not depend on the casing or layout of raw Snowflake rows. Snowflake queries
 must expose agreed aliases and types; the adapter maps them into the shared schemas.
 
-The AI module consumes explicit preferences or validated stops and approved facts.
-It does not choose new places, persist check-ins, or authorize rewards. Analytics
+The AI module consumes normalized constraints and Snowflake candidate JSON. It
+selects and orders stops only from those candidates; it cannot invent places,
+persist check-ins, or authorize rewards. Analytics
 consumes stable events and does not become the operational check-in store.
 
 Each task lists allowed edit paths. A cross-boundary need requires coordination
@@ -74,22 +76,48 @@ in the machine-readable schema. These details must not be guessed by each team.
 
 ## 5. Frontend ↔ backend agreement
 
-### Preference interpretation
+### Input normalization and defaults
 
-`POST /v1/preferences/parse`
+The core flow uses one `POST /v1/quests` request with structured duration, budget,
+and interests. A separate AI preference-parsing endpoint/confirmation step is not
+required by this workflow. Free-text interpretation is deferred unless added explicitly.
 
-Proposed request fields: `text`, `locale`, `timezone`, and `reference_time`.
-Proposed response fields: `proposed_preferences` (a partial set of quest constraints),
-`missing_fields`, and `ambiguities` (field/message pairs).
+Map the form's duration to `available_seconds`, preferences to `interests`, and
+budget to a money object. Missing optional fields use backend configuration:
 
-Missing values remain missing. Show extracted preferences for confirmation before
-generation. Explicit edits win. Do not infer allergy or accessibility facts.
+- `available_seconds`: 5400 (90 minutes), confirmed by the owner.
+- `budget`: $30; proposed enforcement is a 3000-minor-unit cap, not a permission to
+  overspend. The dollar currency code is still to be confirmed. USD in examples is
+  illustrative, not a finalized default currency.
+- `interests`: `[]`, meaning no preference; do not invent favorite categories.
+- `return_to_start`: false, preserving the existing route-end proposal.
+- `start`, `departure_time`, and `timezone`: fallback policy remains unresolved.
+  A configured neighborhood anchor must be labeled as such, not as the user's location.
+
+For the draft contract, omitted fields trigger defaults. Explicit nulls, malformed
+values, negative budgets, nonpositive durations, and unsupported currencies are
+validation errors. An explicit zero budget is valid and never replaced by $30.
+An explicitly supplied empty interests list is valid, not a default application.
+Treat the budget money object as a unit: partial objects are invalid. The frontend
+should omit blank optional fields rather than send empty strings or null.
+
+Normalize once before retrieval, preserve valid user values, and retain effective
+constraints throughout the pipeline. A valid override beats configuration. Validate
+fallback configuration itself; missing required fallback settings produce
+`CONFIGURATION_ERROR` without guessing. Defaults never replace missing place data.
+
+The response includes `defaults_applied`: a list of `{field, value}` entries, and
+`defaults_version` to identify the configuration used. Return the resolved inputs
+in `constraints`; display these in the frontend with an edit/regenerate action.
+No extra confirmation screen is required. Subsequent planning errors include the
+same normalization context in their error details.
 
 ### Quest generation
 
 `POST /v1/quests`
 
-Illustrative synthetic request; its coordinates do not select the demo neighborhood:
+Illustrative synthetic request with explicit overrides; its coordinates do not
+select the demo neighborhood and USD does not select the default currency:
 
 ```json
 {
@@ -105,11 +133,12 @@ Illustrative synthetic request; its coordinates do not select the demo neighborh
 
 Proposed success: HTTP 201 with a `Quest` object. Its required fields:
 
-- `quest_id`, `created_at`, `constraints` (the confirmed input), and `title`.
+- `quest_id`, `created_at`, `constraints` (the effective normalized input), and `title`.
 - `stops`: exactly three ordered `QuestStop` records with distinct `place_id` values.
 - `route`: `legs`, `walking_seconds`, `visit_seconds`, `total_seconds`,
   `distance_meters`, and `ends_at_start`.
 - `estimated_cost`: money object with the total estimated spending.
+- `defaults_applied` and `defaults_version` as defined above.
 - `assumptions`: user-readable strings explaining estimates and route conditions.
 - `mode`: `demo`, `simulation`, and `fallback_used` booleans, plus
   `routing_source` (`provider`, `cache`, or `fixture`).
@@ -147,10 +176,23 @@ Example for an impossible request:
 {
   "error": {
     "code": "NO_FEASIBLE_ROUTE",
-    "message": "No approved three-stop route fits the requested time.",
+    "message": "No feasible three-stop route was found in the evaluated candidate set.",
     "request_id": "demo_request_001",
     "details": {
       "field_errors": [],
+      "reason": "NO_VALID_COMBINATION",
+      "search_scope": "retrieved_candidates",
+      "constraints": {
+        "start": { "latitude": 34.05, "longitude": -117.75 },
+        "departure_time": "2026-10-24T10:00:00-07:00",
+        "timezone": "America/Los_Angeles",
+        "available_seconds": 5400,
+        "budget": { "amount_minor": 2000, "currency": "USD" },
+        "interests": ["coffee", "art"],
+        "return_to_start": false
+      },
+      "defaults_applied": [],
+      "defaults_version": "demo_example_v1",
       "suggested_adjustments": [
         { "field": "available_seconds", "message": "Try allowing more time." }
       ]
@@ -162,19 +204,27 @@ Example for an impossible request:
 Proposed status/code mapping:
 
 - 422 `VALIDATION_ERROR`: malformed or unsupported input; include field errors.
-- 422 `NO_FEASIBLE_ROUTE`: valid request, but no route fits; provide adjustments
+- 422 `NO_FEASIBLE_ROUTE`: deterministic checks establish no route fits the evaluated
+  candidate set (including fewer than three eligible candidates); provide adjustments
   without claiming an untested amount of extra time or money guarantees success.
 - 401 `AUTH_REQUIRED`: missing or invalid session.
 - 403 `FORBIDDEN`: authenticated session lacks business-metrics permission.
 - 404 `QUEST_NOT_FOUND`: missing quest or quest not owned by the session.
 - 422 `INVALID_CHECK_IN_TOKEN`: invalid scope, expiry, or token.
 - 409 `IDEMPOTENCY_CONFLICT`: the same key was used with different request contents.
+- 502 `PLAN_GENERATION_FAILED`: model failure or invalid proposal after the bounded
+  repair attempt; never imply that no feasible route exists.
+- 503 `CONFIGURATION_ERROR`: required default/context configuration is unavailable.
 - 503 `DEPENDENCY_UNAVAILABLE`: required provider could not complete the operation.
 - 500 `INTERNAL_ERROR`: unexpected failure with a safe message and request ID.
 
 Every envelope includes `field_errors` and `suggested_adjustments`, empty when
 irrelevant. A field error has `field` and `message`. No stack traces or secrets.
-The frontend handles unrecognized error codes with a safe generic state.
+The frontend handles unrecognized error codes with a safe generic state. After
+normalization, error details also include `constraints`, `defaults_applied`, and
+`defaults_version`; before normalization succeeds these are omitted. For
+`NO_FEASIBLE_ROUTE`, include a reason and `search_scope: "retrieved_candidates"`.
+Do not imply the top-10 shortlist proves infeasibility across the whole neighborhood.
 
 ### Simulated check-in
 
@@ -239,11 +289,29 @@ the requested planning window. Document how the adapter derives them from local
 hours, date exceptions, and daylight-saving changes. A place with unknown necessary
 hours or costs cannot prove a strictly feasible quest.
 
-The candidate-retrieval adapter takes start coordinates, the planning time window,
-interests, budget/currency, and a bounded result limit. It returns `PlaceRecord[]`.
-An empty successful query and a warehouse failure are different outcomes. Freeze
-exact query parameters, column aliases/types, and representative rows with the
-backend and data owners before either independently implements this adapter.
+The retrieval request contains `request_id`, `constraints` (including start/time,
+duration, budget, and interests), and `limit: 10`. Use parameterized queries.
+Snowflake ranks distinct eligible places; the backend adapter exposes a validated
+`CandidateSet` JSON object, whether the query returns rows or a native JSON object:
+
+- `request_id`, `retrieved_at`, and `ranking_version`.
+- `constraints`: the same normalized input used for retrieval.
+- `candidates`: zero to ten `PlaceRecord` objects, each extended with integer `rank`
+  starting at 1 and `match_reasons` strings grounded in record tags/attributes.
+- `candidate_count`: equal to the length of `candidates`.
+
+Recommended initial ranking: filter the approved neighborhood/currency and required
+known data, then order by interest overlap descending, straight-line distance from
+start ascending, and `place_id` as a stable tie-breaker. With no preference, omit
+the interest criterion. This ranking is proposed; freeze it and its version with
+query aliases/types before independent implementation. Coarse cost/time/opening
+filters may exclude clearly impossible places but cannot certify a full route.
+
+Return fewer than ten when necessary; do not pad with duplicates or invented data.
+Fewer than three yields an insufficient-candidates reason, not an AI request to
+invent stops. Unknown hours/costs cannot support strict planning. An empty successful
+query and a warehouse failure are distinct. Candidate descriptions and facts remain
+untrusted model input, not instructions. Preserve IDs and provenance through JSON.
 
 Analytics uses a shared `AnalyticsEvent` containing `event_id`, `event_type`,
 `occurred_at`, `quest_id`, `stop_id`, `place_id`, nullable `business_id`, `demo`, and
@@ -258,18 +326,35 @@ explicitly; the UI must expose freshness rather than assume an instant warehouse
 
 ## 7. Backend ↔ AI agreement
 
-Preference parsing takes the text and explicit time/locale context and returns the
-partial-preference shape above. The backend validates it before presentation.
+`PlanningInput` contains `request_id`, effective `constraints`, `candidate_set`,
+`stop_count: 3`, and `objective`. Proposed objective: satisfy hard constraints,
+prefer interest matches, and reduce walking. Exact comparison rules remain open;
+never promise a globally optimal route. The input may contain measured walking
+legs and validation errors for one repair attempt. Never label distance estimates
+as verified walking times.
 
-Challenge generation takes an ordered list of validated `stop_id`, `place_id`,
-approved facts, and confirmed interests. It returns `title` and `challenges`, each
-with `stop_id`, `text`, and `fact_ids`. There must be one challenge per selected stop;
-each fact ID must belong to that stop's approved facts. No additional stops or offers.
+AI returns `QuestProposal` JSON: `title`, `ordered_stops`, and `planning_rationale`.
+Each ordered stop contains `place_id`, `why_selected`, and `challenge` with `text`
+and `fact_ids`. Exactly three distinct IDs must belong to this candidate set;
+fact IDs must belong to their selected place. The model chooses the order. Backend
+assigns quest/stop IDs and completion state, and calculates authoritative costs,
+arrival/departure times, walking durations, and geometry. Model totals, if emitted
+outside the agreed schema, are rejected rather than used as authoritative values.
 
-The backend validates structure, IDs, and grounding. A valid fact ID alone does not
-prove the accompanying text is supported; evaluate the claims against the cited
-facts and use approved templates when generated content fails validation.
-Record model and prompt versions with the saved quest and evaluation results.
+Validate schema and IDs before requesting directions. Measure chosen walking legs,
+calculate the full schedule including visits, and check budget/opening windows.
+Check narrative claims against approved facts; a valid fact ID alone is insufficient.
+One repair call may use concrete validation failures and the same candidate set;
+validate it again. Bound total calls/time. A failed proposal does not demonstrate
+infeasibility: return `PLAN_GENERATION_FAILED` unless independent checks prove
+`NO_FEASIBLE_ROUTE` within the stated candidate scope. Routing/provider failures
+remain dependency errors. Template prose is allowed only for a valid route and
+must set `fallback_used`; a fixture must never masquerade as a live route.
+
+Only validated proposals are assembled into the frontend `Quest` response and
+persisted. Record model/prompt versions, defaults version, candidate snapshot
+references, and ranking version so evaluations can reproduce the planning context.
+The frontend never receives raw unchecked model output.
 
 ## 8. Contract change procedure
 
@@ -291,7 +376,9 @@ Before independent implementation, resolve the explicit gaps above and publish
 the canonical schemas. The draft is not ready to substitute for those schemas.
 Minimum shared examples: successful three-stop quest; invalid request; no feasible
 route; dependency failure; initial and duplicate check-in; unauthorized access;
-and demo metrics with unavailable verified-redemption tracking.
+and demo metrics with unavailable verified-redemption tracking. Add omitted-input
+defaults, explicit zero budget, invalid supplied values, top-10/partial/empty candidate
+sets, AI proposal and revision, out-of-set IDs, infeasible order, and exhausted repair.
 
 All example messages must validate. Fixture IDs, costs, times, and fact references
 must agree across the catalog and API examples. Verify responses from actual
@@ -312,7 +399,8 @@ are not implemented. Keep operational storage distinct from warehouse analytics.
 ### Operational records
 
 - Sessions/users: identity and ownership relationships.
-- Quests: owner, original constraints, approved route snapshot, model/prompt version,
+- Quests: owner, effective constraints, defaults applied/version, candidate snapshot
+  references and ranking version, approved route snapshot, model/prompt version,
   creation time, and expiry where applicable.
 - Stops: quest/stop IDs, place reference, planned times, and challenge fact references.
 - Check-ins: unique quest/stop completion, token validation outcome, and idempotency key.

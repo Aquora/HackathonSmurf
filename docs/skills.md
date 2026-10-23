@@ -1,7 +1,8 @@
 # Team skills catalog
 
-Status: restored for team review on October 23, 2026. No skills have been selected
-as mandatory, installed, or configured by this document. Developers choose their
+Status: all 13 catalog entries copied/downloaded into `.skillls/` on October 23,
+2026 at the owner's request. None is mandatory or globally installed; dependencies
+and accounts have not been configured. Developers choose their
 component technologies; skill choices should follow those decisions.
 
 ## How to use this catalog
@@ -14,6 +15,27 @@ before applying it. A catalog description is not a substitute for its instructio
 “Listed in this session” means the skill appears in the current assistant's skill
 catalog. It does not prove availability on teammates' machines, working dependencies,
 account access, or successful execution. Entries below are options, not mandates.
+
+## Local copies
+
+Use the links below to read the actual instructions. Supporting files are included
+in each folder. See [local usage notes](../.skillls/README.md) and the
+[source/checksum manifest](../.skillls/manifest.json). This custom folder is not an
+automatic skill installation path; teammates can explicitly give it to their agents.
+
+- [create-rule](../.skillls/create-rule/SKILL.md) — copied from the existing local installation.
+- [deploy-with-vercel](../.skillls/deploy-with-vercel/SKILL.md) — copied from the existing local installation.
+- [gh-fix-ci](../.skillls/gh-fix-ci/SKILL.md) — downloaded from openai/skills.
+- [imagegen](../.skillls/imagegen/SKILL.md) — copied from the existing local installation.
+- [openai-docs](../.skillls/openai-docs/SKILL.md) — copied from the existing local installation.
+- [playwright](../.skillls/playwright/SKILL.md) — downloaded from openai/skills.
+- [render-deploy](../.skillls/render-deploy/SKILL.md) — downloaded from openai/skills.
+- [review-bugbot](../.skillls/review-bugbot/SKILL.md) — copied from the existing local installation.
+- [review-security](../.skillls/review-security/SKILL.md) — copied from the existing local installation.
+- [security-best-practices](../.skillls/security-best-practices/SKILL.md) — downloaded from openai/skills.
+- [sentry](../.skillls/sentry/SKILL.md) — downloaded from openai/skills.
+- [skill-creator](../.skillls/skill-creator/SKILL.md) — copied from the existing local installation.
+- [skill-installer](../.skillls/skill-installer/SKILL.md) — copied from the existing local installation.
 
 ## Skills listed in this session
 
@@ -75,11 +97,11 @@ account access, or successful execution. Entries below are options, not mandates
   select an OpenAI model or replace the project's open-weight AI requirement.
 - Team decision: conditional; undecided.
 
-## Earlier candidates requiring discovery and verification
+## Official candidates downloaded for review
 
-These names appeared in the earlier catalog, but they are not listed in this
-session's available skills. Their current source, contents, installability, and
-compatibility have not been checked. Do not treat this as an installation list.
+These five names were verified in the official openai/skills curated catalog and
+downloaded with the skill-installer helper. Their SKILL.md instructions were read;
+their tools and workflows have not been executed or configured for the project.
 
 - **playwright**: possible browser-testing workflow for quest generation, check-in,
   passport, narrow-screen behavior, and keyboard navigation. Needs a running app
@@ -93,7 +115,7 @@ compatibility have not been checked. Do not treat this as an installation list.
 - **sentry**: possible error investigation workflow, only if Sentry is selected and
   configured. Needs appropriately scoped access; application logs may suffice.
 
-Team decision for these candidates: undecided; discover and inspect only when needed.
+Team decision for these candidates: available locally for review; adoption remains undecided.
 
 ## Capabilities without a selected skill
 
