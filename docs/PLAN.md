@@ -1,6 +1,6 @@
 # Local Quest implementation plan
 
-Current phase: API quest-generation slice implemented locally (mock-verified); live Cursor/Snowflake integration not yet verified.
+Current phase: API quest-generation slice implemented locally (mock-verified); live Snowflake/Cortex llama integration verified on 2026-10-23 (see below).
 
 ## 1. Confirm scope and dependencies
 - [ ] Select neighborhood, validate event rules, and confirm the first demo scope.
@@ -120,3 +120,8 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
 - [x] 2026-10-23: Added a random task (inside photo, building photo, review screenshot) and a
   model-written description to every quest stop; prompt version 2026-10-23.2. 86 tests pass
   (mock mode). Not done: task uploads/verification; not yet run against a live model.
+- [x] 2026-10-23: Removed the Cursor (OpenAI-compatible) model provider and `CURSOR_*` settings;
+  the model step is Snowflake Cortex llama only (`AI_PROVIDER=snowflake|mock`). Renamed
+  CursorAdapter to ModelAdapter and the API error `details.upstream` value `"cursor"` to `"cortex"`
+  (frontend code matching on it must change). 89 API tests pass (mock mode). Known: `llama3.3-70b`
+  route planning exceeded the 20 s statement timeout; `llama3.1-8b` returned invalid routes.

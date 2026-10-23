@@ -336,10 +336,10 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
 - **Wire format:** camelCase, dollars, minutes, miles, local `HH:MM` times, as specified
   by the owner. This differs from the TEAM-CONTRACT draft (snake_case, minor units,
   seconds, meters); reconcile before other endpoints are built.
-- **"Cursor" model step:** implemented as an OpenAI-compatible chat-completions client
-  (`CURSOR_API_BASE_URL`, `CURSOR_API_KEY`, `CURSOR_MODEL`). Cursor's documented public API
-  is a cloud-agents API, not a JSON chat endpoint, so the gateway/model is an **open
-  decision**. Using an open-weight model behind this interface keeps the open-source AI goal.
+- **Model step:** runs only on Snowflake Cortex (`AI_COMPLETE`, `SNOWFLAKE_AI_MODEL`, a llama
+  model) through the shared Snowflake pool. The earlier OpenAI-compatible "Cursor" client and
+  its `CURSOR_*` settings were removed on 2026-10-23; the API error label is now `"cortex"`.
+  Open-weight llama keeps the open-source AI goal.
 - **Code owns constraints:** start/end address, membership in the 10 candidates, no
   duplicates, ordered times, departure before closing time. One repair request to the
   model on invalid output, then a 502. Empty route → 422 `NO_FEASIBLE_ROUTE`.
@@ -391,6 +391,6 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
   Cloud Agents API (Pro plan), which has no chat-completions endpoint.
 - 2026-10-23: Each quest stop now has a `task` and a `description`. Code picks one task at
   random per Snowflake candidate (inside photo, building photo, or review screenshot) and
-  sends it in the Cursor prompt; the returned stop always carries the code-assigned task.
-  Cursor writes the description from the provided facts only; a missing or overlong one is
+  sends it in the model prompt; the returned stop always carries the code-assigned task.
+  The model writes the description from the provided facts only; a missing or overlong one is
   replaced with template text. Uploads for tasks are not implemented yet.
