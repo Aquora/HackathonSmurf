@@ -30,7 +30,7 @@ async function signInWithPassword(page: Page, username: string, password: string
 test.describe.configure({ mode: "serial" });
 
 test("protected route redirects signed-out visitors to sign-in", async ({ page }) => {
-  await page.goto("/explore");
+  await page.goto("/quests");
   await expect(page).toHaveURL(/\/sign-in\?callbackUrl=/);
   await expect(page.getByRole("heading", { name: /Welcome/ })).toBeVisible();
 });
@@ -52,8 +52,8 @@ test("new username/password registration signs in and stores only a hash", async
   await page.getByLabel("Password", { exact: true }).fill(player.password);
   await page.getByRole("button", { name: "Sign up" }).click();
 
-  await expect(page).toHaveURL(/\/explore$/);
-  await expect(page.getByText(`@${player.username}`)).toBeVisible();
+  await expect(page).toHaveURL(/\/quests$/);
+  await expect(page.getByText(`begin your streak, ${player.username}!`)).toBeVisible();
 
   const stored = await users().findOne({ username: player.username });
   expect(stored?.email).toBe(player.email);
@@ -63,7 +63,7 @@ test("new username/password registration signs in and stores only a hash", async
 
 test("session cookie is httpOnly, persistent, and the session payload has no secrets", async ({ page, context }) => {
   await signInWithPassword(page, player.username, player.password);
-  await expect(page).toHaveURL(/\/explore$/);
+  await expect(page).toHaveURL(/\/quests$/);
 
   const cookie = (await context.cookies()).find((c) => c.name.endsWith("authjs.session-token"));
   expect(cookie?.httpOnly).toBe(true);
@@ -78,8 +78,8 @@ test("session cookie is httpOnly, persistent, and the session payload has no sec
   // Still signed in after closing and reopening the page.
   await page.close();
   const again = await context.newPage();
-  await again.goto("/explore");
-  await expect(again.getByText(`@${player.username}`)).toBeVisible();
+  await again.goto("/profile");
+  await expect(again.getByText(`@${player.username}`).first()).toBeVisible();
 });
 
 test("duplicate usernames and emails are rejected with a generic message", async ({ page }) => {
@@ -99,17 +99,25 @@ test("duplicate usernames and emails are rejected with a generic message", async
 
 test("sign out ends the session and protects pages again", async ({ page }) => {
   await signInWithPassword(page, player.username, player.password);
-  await expect(page).toHaveURL(/\/explore$/);
+  await expect(page).toHaveURL(/\/quests$/);
+  await page.goto("/profile");
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await page.goto("/explore");
+  await page.goto("/quests");
   await expect(page).toHaveURL(/\/sign-in/);
 });
 
-test("username/password sign-in goes to Explore", async ({ page }) => {
+test("username/password sign-in goes to the quest board", async ({ page }) => {
   await signInWithPassword(page, player.username, player.password);
-  await expect(page).toHaveURL(/\/explore$/);
-  await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
+  await expect(page).toHaveURL(/\/quests$/);
+  await expect(page.getByRole("heading", { name: "Your quest board" })).toBeVisible();
+  const nav = page.getByRole("navigation", { name: "Main" });
+  await expect(nav.getByRole("link", { name: "Quests" })).toHaveAttribute("aria-current", "page");
+  // Explore is now a disabled "coming soon" tab, and old /explore links land on the quest board.
+  await expect(nav.getByRole("link", { name: /Explore/ })).toHaveCount(0);
+  await expect(nav.getByText("Explore")).toBeVisible();
+  await page.goto("/explore");
+  await expect(page).toHaveURL(/\/quests$/);
 });
 
 test("wrong password and unknown username get the same generic error", async ({ page }) => {
@@ -133,8 +141,9 @@ test("existing user created before this auth flow can sign in", async ({ page })
     createdAt: new Date("2026-01-01"),
   });
   await signInWithPassword(page, existing.username, existing.password);
-  await expect(page).toHaveURL(/\/explore$/);
-  await expect(page.getByText(`@${existing.username}`)).toBeVisible();
+  await expect(page).toHaveURL(/\/quests$/);
+  await page.goto("/profile");
+  await expect(page.getByText(`@${existing.username}`).first()).toBeVisible();
 });
 
 test("repeated failed sign-ins are rate limited", async ({ page }) => {

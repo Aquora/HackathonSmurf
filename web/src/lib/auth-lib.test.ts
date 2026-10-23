@@ -73,15 +73,15 @@ describe("rate limiting", () => {
 
 describe("post-sign-in redirects", () => {
   it.each([
-    [undefined, "/explore"],
-    ["/explore", "/explore"],
+    [undefined, "/quests"],
+    ["/quests", "/quests"],
     ["/profile?tab=badges", "/profile?tab=badges"],
-    ["https://evil.example", "/explore"],
-    ["//evil.example", "/explore"],
-    ["/\\evil.example", "/explore"],
+    ["https://evil.example", "/quests"],
+    ["//evil.example", "/quests"],
+    ["/\\evil.example", "/quests"],
     ["http://localhost:3000/profile?x=1", "/profile?x=1"],
-    ["http://evil.example/profile", "/explore"],
-    ["javascript:alert(1)", "/explore"],
+    ["http://evil.example/profile", "/quests"],
+    ["javascript:alert(1)", "/quests"],
   ])("maps %s to %s", (input, expected) => {
     expect(safeRedirectPath(input, "localhost:3000")).toBe(expected);
   });

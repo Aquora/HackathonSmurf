@@ -1,4 +1,4 @@
-export const DEFAULT_AFTER_SIGN_IN = "/explore";
+export const DEFAULT_AFTER_SIGN_IN = "/quests";
 
 /**
  * Only same-site destinations are allowed after sign-in (no open redirects).

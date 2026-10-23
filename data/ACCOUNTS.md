@@ -17,6 +17,12 @@ adapter defaults.
 | `accounts` | Auth.js adapter | Standard OAuth account link (`provider`, `providerAccountId`, `userId`, tokens) | `provider_account_unique` (unique), `account_user` |
 | `sessions` | Auth.js adapter | `sessionToken`, `userId`, `expires` | `session_token_unique` (unique) |
 | `verification_tokens` | Auth.js adapter | `identifier`, `token`, `expires` | `verification_token_unique` (unique) |
+| `avatars` | Profile picture upload (`web/src/features/profile/actions.ts`) | `_id` (= user `_id`), `data` (binary, ≤ 2 MB), `contentType` (`image/png`, `image/jpeg`, or `image/webp`, detected from the file bytes), `size`, `updatedAt` | `_id` only |
+
+`users.avatarUpdatedAt` is set while an uploaded picture exists. The profile shows the
+uploaded picture first, then the Google account photo (`users.image`), then the default
+pixel explorer from the Figma design. Uploaded pictures are served only to signed-in
+users from `/api/avatars/<userId>`.
 
 Notes:
 
@@ -39,4 +45,4 @@ implemented).
 ## Retention and deletion
 
 Not yet decided (see PROJECT.md "Decisions for the owner"). Deleting a user should
-remove their `users` document and matching `accounts` documents.
+remove their `users` document and matching `accounts` and `avatars` documents.

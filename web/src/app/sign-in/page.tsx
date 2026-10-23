@@ -26,7 +26,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         <AuthBanner title="Welcome" highlight="back, player." subtitle={`You're signed in as ${who}.`} />
         <div className="auth-page">
           <Link className="auth-page__continue" href={destination}>
-            Continue to Explore
+            Continue to your quests
           </Link>
           <SignOutButton variant="wide" />
         </div>

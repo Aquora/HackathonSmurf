@@ -8,7 +8,7 @@ import { getUsersCollection } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 import { clientIp, consume, LIMITS } from "@/lib/rate-limit";
 import { registrationSchema, toFieldErrors, type FieldErrors } from "@/lib/validation";
-import { safeRedirectPath } from "./redirects";
+import { DEFAULT_AFTER_SIGN_IN, safeRedirectPath } from "./redirects";
 
 export interface FormState {
   error?: string;
@@ -81,7 +81,7 @@ export async function registerAccount(_previous: FormState, formData: FormData):
 
   // Start a session for the new account and continue to the app.
   try {
-    await signIn("credentials", { username, password, redirectTo: "/explore" });
+    await signIn("credentials", { username, password, redirectTo: DEFAULT_AFTER_SIGN_IN });
   } catch (error) {
     if (!(error instanceof AuthError)) throw error;
     return { error: "Your account was created. Please sign in.", values };

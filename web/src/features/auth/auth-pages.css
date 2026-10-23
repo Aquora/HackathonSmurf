@@ -1,4 +1,4 @@
-/* Layout and text styles for the sign-in, register, and explore pages (sign-up frame specs). */
+/* Layout and text styles for the sign-in and register pages (sign-up frame specs). */
 
 .auth-page {
   display: flex;
@@ -113,12 +113,7 @@
   border: 1px solid var(--color-input-border);
 }
 
-/* Explore */
-
-.explore-page {
-  min-height: calc(100dvh - var(--header-height));
-  padding-bottom: 96px;
-}
+/* "Signed in as … / Sign out" row (profile page) */
 
 .account-bar {
   display: flex;

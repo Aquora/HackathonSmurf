@@ -10,18 +10,28 @@ For teammates and their AI assistants. Scope: `web/`.
 - Auth: Auth.js v5 (`next-auth@5` beta) in `src/auth.ts` with Google and
   username/password (Credentials) providers, MongoDB via `@auth/mongodb-adapter`,
   JWT session cookies (30 days). Registration and sign-in are server actions in
-  `src/features/auth/actions.ts`. Protected pages: `/explore` (and the reserved
-  `/quests`, `/friends`, `/profile` prefixes) via `src/proxy.ts` plus a check in
+  `src/features/auth/actions.ts`. Protected pages: `/quests` (signed-in home),
+  `/profile`, and the reserved `/friends` prefix via `src/proxy.ts` plus a check in
   each page. Account schema: [data/ACCOUNTS.md](../data/ACCOUNTS.md).
 - Commands (verified): `npm install`, `npm run dev` (port 3000), `npm run build`,
   `npm run typecheck`, `npm run lint`, `npm test` (unit), `npm run test:e2e`
   (needs a running app on a disposable database; see `playwright.config.ts`).
 - Config: copy `.env.example` to `.env.local`; never commit real values.
-- Screens: landing (`/`), register (`/register`), sign-in (`/sign-in`), and
-  Explore (`/explore`, protected) from the LocalQuest Figma file
-  (`dNPMN12L6f9V9tFchiIdeH`). Explore has no body content in the design yet.
-- Shared UI: `AppHeader`, `PixelButton`, `WideButton`, `TextField`/`PasswordField`,
-  `AuthBanner`, `BottomNav`, `PixelSprite` (pixel art as run data in `sprites.ts`).
+- Screens: landing (`/`), register (`/register`), sign-in (`/sign-in`), Quests
+  (`/quests`, protected, where users land after sign-in), and Profile (`/profile`,
+  protected) from the LocalQuest Figma file (`dNPMN12L6f9V9tFchiIdeH`). The quest
+  board shows empty states until quests are stored. The Explore page was removed;
+  `/explore` redirects to `/quests` and the Explore tab is a disabled "coming soon" tab.
+- Sign out lives at the bottom of the profile page and on `/sign-in` when signed in.
+- Profile picture: uploaded picture > Google photo > default pixel explorer
+  (`src/lib/profile.ts`). Uploads are server actions (`src/features/profile/actions.ts`,
+  ≤ 2 MB, PNG/JPEG/WebP detected from bytes) stored in MongoDB `avatars` and served by
+  `src/app/api/avatars/[userId]/route.ts` to signed-in users. Quest stats, XP, badges,
+  and the quest log show empty/zero states until quest progress is tracked.
+- Don't run `npm run build` while `npm run dev` is running; the build rewrites `.next`
+  and can crash the dev server.
+- Shared UI: `AppHeader`, `PixelButton`, `WideButton`/`WideLink`, `TextField`/`PasswordField`,
+  `AuthBanner`, `BottomNav`, `PlayerAvatar`, `PixelSprite` (pixel art as run data in `sprites.ts`).
 - No quest API calls yet. The FastAPI backend does not yet verify these sessions.
 
 ## Before working

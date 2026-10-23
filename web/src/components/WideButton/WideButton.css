@@ -51,3 +51,18 @@
   cursor: progress;
   opacity: 0.7;
 }
+
+/* 56px-tall variant (profile frame); its SVG frame is 60px tall. */
+.wide-button--compact {
+  height: 56px;
+  text-decoration: none;
+}
+
+.wide-button--compact .wide-button__frame {
+  height: 60px;
+}
+
+.wide-button--compact .wide-button__label {
+  font-size: 32px;
+  line-height: 36px;
+}

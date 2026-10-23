@@ -3,5 +3,5 @@
 export { auth as proxy } from "@/auth";
 
 export const config = {
-  matcher: ["/explore/:path*", "/quests/:path*", "/friends/:path*", "/profile/:path*"],
+  matcher: ["/quests/:path*", "/friends/:path*", "/profile/:path*"],
 };

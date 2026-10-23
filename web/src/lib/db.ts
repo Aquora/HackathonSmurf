@@ -1,5 +1,6 @@
 import "server-only";
-import { MongoClient, type Collection } from "mongodb";
+import { MongoClient, type Binary, type Collection, type ObjectId } from "mongodb";
+import type { AvatarContentType } from "./image-type";
 
 /** Shape of documents in the `users` collection (shared with the Auth.js adapter). Reads add `_id`. */
 export interface UserDocument {
@@ -12,6 +13,17 @@ export interface UserDocument {
   /** Argon2id hash. Absent for Google-only accounts. Never sent to the client. */
   passwordHash?: string;
   createdAt?: Date;
+  /** Set when the user has uploaded a profile picture (stored in `avatars`). */
+  avatarUpdatedAt?: Date;
+}
+
+/** One uploaded profile picture per user; `_id` is the user's `_id`. */
+export interface AvatarDocument {
+  _id: ObjectId;
+  data: Binary;
+  contentType: AvatarContentType;
+  size: number;
+  updatedAt: Date;
 }
 
 // Reuse one client across hot reloads in development and across requests in production.
@@ -36,6 +48,11 @@ export function getMongoClient(): Promise<MongoClient> {
 export async function getUsersCollection(): Promise<Collection<UserDocument>> {
   const client = await getMongoClient();
   return client.db().collection<UserDocument>("users");
+}
+
+export async function getAvatarsCollection(): Promise<Collection<AvatarDocument>> {
+  const client = await getMongoClient();
+  return client.db().collection<AvatarDocument>("avatars");
 }
 
 /**

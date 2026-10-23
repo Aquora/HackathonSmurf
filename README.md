@@ -59,7 +59,7 @@ secret configuration. `data/` contains definitions and guidance, not live record
   `.env.local` and fill it in, then `npm install`, `npm run dev`
   (http://localhost:3000), `npm run build`, `npm run typecheck`, `npm run lint`,
   `npm test`. Needs a MongoDB reachable at `DATABASE_URL`. Built: landing, register,
-  sign-in, and protected Explore pages; it does not call the quest API yet.
+  sign-in, and protected Quests (home after sign-in) and Profile pages; it does not call the quest API yet.
   Account schema: [data/ACCOUNTS.md](data/ACCOUNTS.md).
 - API routes, inputs and responses: [api/ROUTES.md](api/ROUTES.md).
 - Snowflake procedure (not yet run against an account): [snowflake/find_quest_locations.sql](snowflake/find_quest_locations.sql).

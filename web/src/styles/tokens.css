@@ -18,10 +18,13 @@
   --color-muted: #936262;
   --color-link: #923838;
 
+  /* Profile frame */
+  --color-shadow-deep: #652626;
+  --color-locked-bg: #f9ece5;
+
   /* Bottom navigation (explore frame) */
   --color-nav-active-bg: #e84a4a;
   --color-nav-active: #f8d35a;
-  --color-nav-quests: #fffced;
 
   /* Pixel-art palette */
   --pixel-dark: #8a3439;

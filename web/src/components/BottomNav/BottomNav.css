@@ -6,6 +6,12 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+.bottom-nav__trim {
+  height: 4px;
+  background: var(--color-gold);
+  border: 1px solid var(--color-input-border);
+}
+
 .bottom-nav__tabs {
   display: flex;
   gap: 8px;
@@ -34,10 +40,6 @@
   color: var(--color-white);
   text-decoration: none;
   white-space: nowrap;
-}
-
-.bottom-nav__item--quests {
-  color: var(--color-nav-quests);
 }
 
 .bottom-nav__item--active {

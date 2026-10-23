@@ -1,6 +1,8 @@
 import type { ButtonHTMLAttributes } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import wideButton from "@/assets/wide-button.svg";
+import wideButton56 from "@/assets/wide-button-56.svg";
 import "./WideButton.css";
 
 interface WideButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -20,5 +22,15 @@ export function WideButton({ label, size = "primary", className, type = "submit"
       <Image className="wide-button__frame" src={wideButton} alt="" />
       <span className="wide-button__label">{label}</span>
     </button>
+  );
+}
+
+/** Full-width 376x56 pixel link button from the profile frame ("Find your next quest"). */
+export function WideLink({ label, href, className }: { label: string; href: string; className?: string }) {
+  return (
+    <Link className={["wide-button", "wide-button--compact", className].filter(Boolean).join(" ")} href={href}>
+      <Image className="wide-button__frame" src={wideButton56} alt="" />
+      <span className="wide-button__label">{label}</span>
+    </Link>
   );
 }
