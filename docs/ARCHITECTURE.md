@@ -32,7 +32,7 @@ hashed with Argon2id (19 MiB, t=2, p=1). Google accounts are never linked
 automatically to an existing password account with the same email. Rate limiting
 is in-memory per process and must move to a shared store (for example Redis) for
 multi-instance or serverless hosting. The FastAPI backend does not verify these
-sessions yet; quest ownership checks need a session-verification design first.
+sessions; see "Web ↔ API integration" below for how ownership is enforced.
 
 ## Components
 - Web: preference form, map, route cards, passport, and authenticated dashboard.
@@ -412,3 +412,18 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
   sends it in the model prompt; the returned stop always carries the code-assigned task.
   The model writes the description from the provided facts only; a missing or overlong one is
   replaced with template text. Uploads for tasks are not implemented yet.
+
+## Web ↔ API integration (2026-10-23)
+
+- The browser never calls the FastAPI backend. A Next.js server action checks the Auth.js session,
+  rate-limits per user (10 quests / 10 min), calls `POST /v1/quests` at server-only `QUEST_API_URL`,
+  validates the reply against the contract with zod, and saves it to MongoDB `quests` under the
+  user's ID. Rationale: reuses the existing session without designing API-side token verification,
+  keeps the API's address and any future service key off the client, and gives one ownership check
+  (every quest query filters by `userId`). Trade-off: the API itself is unauthenticated, so in a
+  deployment it must only be reachable from the web server (private network or a shared secret).
+- Operational store for saved quests and check-ins: MongoDB (same database as accounts), schema in
+  `data/ACCOUNTS.md`. Check-ins are simulated and idempotent (conditional update per stop).
+- Player progress (XP 10 per check-in + 50 per finished quest, 100 XP per level, day streak in
+  America/Los_Angeles, four profile badges) is computed from saved check-ins in `web/src/lib/progress.ts`.
+  It is player-facing only, not merchant metrics; Snowflake analytics/event export is not built.

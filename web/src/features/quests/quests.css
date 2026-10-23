@@ -198,3 +198,226 @@
   line-height: 20px;
   color: var(--color-muted);
 }
+
+/* ---------- New quest form ---------- */
+
+.new-quest {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--color-input-bg);
+  border: 2px solid var(--color-input-border);
+  box-shadow: 0 3px 0 0 var(--color-input-shadow);
+}
+
+.new-quest__label {
+  font-family: var(--font-title);
+  font-size: 24px;
+  line-height: 26px;
+}
+
+.new-quest__input {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--color-white);
+  border: 2px solid var(--color-input-border);
+  font-family: var(--font-body);
+  font-size: 20px;
+  line-height: 22px;
+  color: var(--color-ink);
+  resize: vertical;
+}
+
+.new-quest__input:focus-visible,
+.new-quest__submit:focus-visible,
+.quest-card--link:focus-visible,
+.quest-remove:focus-visible,
+.quest-back:focus-visible {
+  outline: 3px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+.new-quest__hint,
+.new-quest__status,
+.new-quest__understood,
+.new-quest__request-id {
+  margin: 0;
+  font-size: 17px;
+  line-height: 20px;
+  color: var(--color-muted);
+}
+
+.new-quest__submit {
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 4px 18px;
+  background: var(--color-button);
+  border: 2px solid var(--color-input-border);
+  box-shadow: var(--shadow-pixel);
+  font-family: var(--font-body);
+  font-size: 22px;
+  line-height: 24px;
+  color: var(--color-white);
+  cursor: pointer;
+}
+
+.new-quest__submit:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.new-quest__error {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  background: var(--color-locked-bg);
+  border: 2px solid var(--color-header);
+  font-size: 19px;
+  line-height: 22px;
+}
+
+.new-quest__error p {
+  margin: 0;
+}
+
+/* ---------- Saved quest cards ---------- */
+
+.quest-card--link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.quest-card--link:hover {
+  background: var(--color-white);
+}
+
+.quest-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.quest-card__meta {
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--color-link);
+}
+
+.quest-card__bar {
+  display: block;
+  height: 12px;
+  padding: 2px;
+  border: 2px solid var(--color-input-border);
+}
+
+.quest-card__fill {
+  display: block;
+  height: 100%;
+  background: var(--color-gold);
+}
+
+.demo-badge,
+.stamp-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border: 2px solid var(--color-input-border);
+  font-size: 16px;
+  line-height: 18px;
+}
+
+.demo-badge {
+  background: var(--color-locked-bg);
+  color: var(--color-link);
+}
+
+.stamp-badge {
+  background: var(--color-gold);
+  color: var(--color-link);
+}
+
+/* ---------- Quest detail ---------- */
+
+.quest-back {
+  font-size: 20px;
+  color: var(--color-link);
+}
+
+.quest-route {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quest-route__point {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  line-height: 22px;
+}
+
+.quest-route__marker {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  background: var(--color-header);
+  border: 2px solid var(--color-input-border);
+  color: var(--color-white);
+}
+
+.quest-stop {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quest-stop__travel {
+  margin: 0 0 0 12px;
+  padding-left: 10px;
+  border-left: 3px dashed var(--color-input-shadow);
+  font-size: 17px;
+  color: var(--color-muted);
+}
+
+.quest-stop__times,
+.quest-stop__description,
+.quest-stop__task,
+.quest-stop__checked {
+  margin: 0;
+  font-size: 18px;
+  line-height: 21px;
+}
+
+.quest-stop__times {
+  color: var(--color-link);
+}
+
+.quest-stop__checked {
+  color: var(--color-muted);
+}
+
+.quest-stop--done .quest-card {
+  background: var(--color-locked-bg);
+}
+
+.quest-remove {
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 18px;
+  color: var(--color-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (max-width: 420px) {
+  .quest-board {
+    padding-inline: var(--layout-gutter);
+  }
+}
