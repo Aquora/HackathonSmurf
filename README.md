@@ -59,13 +59,42 @@ secret configuration. `data/` contains definitions and guidance, not live record
   `.env.local` and fill it in, then `npm install`, `npm run dev`
   (http://localhost:3000), `npm run build`, `npm run typecheck`, `npm run lint`,
   `npm test`. Needs a MongoDB reachable at `DATABASE_URL`. Built: landing, register,
-  sign-in, and protected Quests (home after sign-in) and Profile pages; it does not call the quest API yet.
+  sign-in, and protected Quests (home after sign-in), quest detail, Friends, and Profile pages. The
+  Next.js server calls the quest API (`QUEST_API_URL`) and saves quests in MongoDB.
   Account schema: [data/ACCOUNTS.md](data/ACCOUNTS.md).
 - API routes, inputs and responses: [api/ROUTES.md](api/ROUTES.md).
 - Snowflake procedure `LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS` (deployed on a trial account): [snowflake/README.md](snowflake/README.md).
 - Configuration: one file, `.env` in this folder (template: [.env.example](.env.example)), read by the API and the Snowflake scripts.
 
-No live services have been provisioned or verified yet.
+## Run the whole app locally
+
+Three processes: MongoDB (accounts and saved quests), the quest API, and the web app.
+
+```bash
+# 1. MongoDB (any local or hosted instance works)
+docker run -d --name localquest-mongo -p 27017:27017 mongo:7   # later: docker start localquest-mongo
+
+# 2. Config (once). Root .env = API + Snowflake; web/.env.local = logins + API URL.
+cp .env.example .env                 # mock data by default; set DATA_PROVIDER/AI_PROVIDER=snowflake + SNOWFLAKE_* for live
+cp web/.env.example web/.env.local   # set AUTH_SECRET (npx auth secret), DATABASE_URL=mongodb://localhost:27017/localquest
+
+# 3. Quest API on :8080
+cd api && python3 -m venv .venv && .venv/bin/pip install -e ".[dev]" && .venv/bin/python -m app
+
+# 4. Web on :3000 (another terminal)
+cd web && npm install && npm run dev
+```
+
+Open http://localhost:3000, register, plan a quest on the quest board, check in at each stop,
+and see XP/badges on the profile. Mock-mode quests are labeled "Demo".
+
+Checks: `cd api && .venv/bin/python -m pytest`; `cd web && npm run typecheck && npm run lint && npm test`;
+end-to-end with both servers running:
+`cd web && E2E_DATABASE_URL=mongodb://localhost:27017/localquest E2E_BROWSER_CHANNEL=chromium npx playwright test`
+(run `npx playwright install chromium` once; the Google test also needs `E2E_GOOGLE_CLIENT_ID` and real Google credentials).
+
+Verified locally on 2026-10-23 in mock mode (MongoDB in Docker). Live Snowflake/Cortex was verified
+earlier by the Snowflake owner but not re-run with this integration. Nothing is deployed.
 
 ## License
 Undecided. Select an application license before publishing as open source; track

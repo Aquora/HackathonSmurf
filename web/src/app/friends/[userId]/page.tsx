@@ -7,9 +7,9 @@ import { BottomNav } from "@/components/BottomNav/BottomNav";
 import { AddFriendButton } from "@/features/friends/AddFriendButton";
 import { cancelFriendRequest, removeFriend, respondToFriendRequest } from "@/features/friends/actions";
 import { PlayerBanner, PlayerStatsSections } from "@/features/profile/PlayerCard";
-import { getRelationship, type Relationship } from "@/lib/friends";
+import { countFriends, getRelationship, type Relationship } from "@/lib/friends";
 import { getPlayerProfile } from "@/lib/profile";
-import { getPlayerStats } from "@/lib/stats";
+import { getPlayerProgress } from "@/lib/quests";
 import "@/features/friends/friends.css";
 import "@/features/profile/profile.css";
 
@@ -35,7 +35,14 @@ export default async function PlayerCardPage(props: PageProps<"/friends/[userId]
     getRelationship(new ObjectId(viewerId), target),
   ]);
   if (!profile) notFound();
-  const stats = relationship.kind === "friends" ? await getPlayerStats(target) : null;
+  // Stats, badges, and friend count are for accepted friends only.
+  const stats =
+    relationship.kind === "friends"
+      ? await Promise.all([getPlayerProgress(target), countFriends(target)]).then(([progress, friendsCount]) => ({
+          progress,
+          friendsCount,
+        }))
+      : null;
 
   return (
     <main className="profile-page">
@@ -47,7 +54,7 @@ export default async function PlayerCardPage(props: PageProps<"/friends/[userId]
       </PlayerBanner>
 
       {stats ? (
-        <PlayerStatsSections stats={stats} />
+        <PlayerStatsSections progress={stats.progress} />
       ) : (
         <section className="profile-section" aria-label="Stats">
           <p className="friend-profile__locked">

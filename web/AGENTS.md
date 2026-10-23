@@ -20,7 +20,7 @@ For teammates and their AI assistants. Scope: `web/`.
 - Screens: landing (`/`), register (`/register`), sign-in (`/sign-in`), Quests
   (`/quests`, protected, where users land after sign-in), and Profile (`/profile`,
   protected) from the LocalQuest Figma file (`dNPMN12L6f9V9tFchiIdeH`). The quest
-  board shows empty states until quests are stored. The Explore page was removed;
+  board has a "Plan my quest" form and lists the player's saved quests; `/quests/<id>` shows the route with simulated check-ins. The Explore page was removed;
   `/explore` redirects to `/quests` and the Explore tab is a disabled "coming soon" tab.
 - Friends (`/friends`, protected): Figma "LocalQuest friends" frame. "+ Add friend" opens the
   Figma popup; requests are sent by exact username (optionally "@…") or exact name, with a
@@ -29,8 +29,8 @@ For teammates and their AI assistants. Scope: `web/`.
   Each row links to that player's card at `/friends/[userId]`, which reuses the profile
   Figma frame (`src/features/profile/PlayerCard.tsx`). Stats and badges are shown only to
   accepted friends; others see a locked card with Add/Cancel/Accept actions. Friends can
-  be removed from the card. Stats come from `src/lib/stats.ts` (zero until quests are
-  recorded); `/profile` uses the same components.
+  be removed from the card. Stats come from `getPlayerProgress` in `src/lib/quests.ts`;
+  `/profile` uses the same components.
 - Player settings (`/settings`, protected): profile picture upload/remove and Sign out.
   Opened from the header menu and the profile page's "Edit profile" link. No Figma frame
   exists for it; it reuses the sign-up banner and panel styles. Sign out also appears on
@@ -46,7 +46,11 @@ For teammates and their AI assistants. Scope: `web/`.
   links to `/settings`, Support is "coming soon" until a support destination exists.
 - Shared UI: `AppHeader`, `PixelButton`, `WideButton`/`WideLink`, `TextField`/`PasswordField`,
   `AuthBanner`, `BottomNav`, `PlayerAvatar`, `PixelSprite` (pixel art as run data in `sprites.ts`).
-- No quest API calls yet. The FastAPI backend does not yet verify these sessions.
+- Quest API: `src/lib/quest-api.ts` calls `POST /v1/quests` from the Next.js server only (after the
+  session check), at `QUEST_API_URL` (default `http://localhost:8080`), and validates the reply with zod.
+  Saved quests and progress (XP, level, streak, badges): `src/lib/quests.ts`, `src/lib/progress.ts`.
+  The FastAPI backend still does not verify sessions itself; it is reachable only by the web server in
+  the intended deployment. E2E journey: `e2e/journey.spec.ts` (needs the API running).
 
 ## Before working
 

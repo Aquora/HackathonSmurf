@@ -18,7 +18,7 @@ adapter defaults.
 | `sessions` | Auth.js adapter | `sessionToken`, `userId`, `expires` | `session_token_unique` (unique) |
 | `verification_tokens` | Auth.js adapter | `identifier`, `token`, `expires` | `verification_token_unique` (unique) |
 | `friendships` | Friends page server actions (`web/src/features/friends/actions.ts`) | `requesterId`, `recipientId`, `pairKey` (both ids sorted and joined), `status` (`pending` or `accepted`), `createdAt`, `acceptedAt` | `pair_unique` (unique), `recipient_status`, `requester_status` (created on first use, in `web/src/lib/friends.ts`) |
-| `user_stats` | Nothing yet (read by `web/src/lib/stats.ts`) | `userId`, `questsCompleted`, `placesVisited`, `currentStreakDays`, `lastActiveDay` (`YYYY-MM-DD`, Los Angeles), `badges` (`id` from `BADGES`, `earnedAt`) | `user_stats_user_unique` (unique, created on first use) |
+| `quests` | Quest board server actions (`web/src/features/quests/actions.ts`) | `userId`, `request` (the player's text), `route` (the API's validated `QuestRoute`, stored as returned), `checkIns` (one date-or-null per stop), `status` (`active` or `done`), `mock`, `createdAt`, `completedAt` | `quest_user_created` (created on first use, in `web/src/lib/quests.ts`) |
 | `avatars` | Profile picture upload (`web/src/features/profile/actions.ts`) | `_id` (= user `_id`), `data` (binary, ≤ 2 MB), `contentType` (`image/png`, `image/jpeg`, or `image/webp`, detected from the file bytes), `size`, `updatedAt` | `_id` only |
 
 A pair of players has at most one `friendships` document. Declining or cancelling a request
@@ -28,9 +28,7 @@ Either friend can remove an accepted friendship (deletes the document).
 
 Profile stats (quests done, places found, day streak, badges, friend count) are shown on
 your own card and to accepted friends at `/friends/<userId>`; other players see only the
-name, handle, picture, and join date. `user_stats` has no writer yet, so its counters read
-as zero until quest completion is recorded. A streak whose `lastActiveDay` is before
-yesterday displays as 0.
+name, handle, picture, and join date. Stats come from the player's `quests` (see below).
 
 `users.avatarUpdatedAt` is set while an uploaded picture exists. The profile shows the
 uploaded picture first, then the Google account photo (`users.image`), then the default
@@ -58,5 +56,8 @@ implemented).
 ## Retention and deletion
 
 Not yet decided (see PROJECT.md "Decisions for the owner"). Deleting a user should
-remove their `users` document and matching `accounts`, `avatars`, `user_stats`, and
-`friendships` documents.
+remove their `users` document and matching `accounts`, `avatars`, `friendships`, and `quests` documents.
+
+Quest check-ins are simulated (a button, no QR or merchant check). A check-in only sets a
+stop's `checkIns` entry while it is still null, so repeating it never adds a second stamp or XP.
+Every read and write filters by `userId`, so players only see and change their own quests.

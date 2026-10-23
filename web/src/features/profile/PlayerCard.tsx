@@ -3,7 +3,7 @@ import Image from "next/image";
 import lockKeyhole from "@/assets/lock-keyhole.svg";
 import { PlayerAvatar } from "@/components/PlayerAvatar/PlayerAvatar";
 import type { PlayerProfile } from "@/lib/profile";
-import { BADGES, type PlayerStats } from "@/lib/stats";
+import type { PlayerProgress } from "@/lib/progress";
 import "./profile.css";
 
 const joinedFormat = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
@@ -47,13 +47,13 @@ export function PlayerBanner({ profile, heading, friendsCount, children }: Playe
   );
 }
 
-/** Progress, stats, and badge collection. XP and levels aren't tracked yet, so they start at level 1. */
-export function PlayerStatsSections({ stats }: { stats: PlayerStats }) {
-  const earned = new Set(stats.earnedBadgeIds);
+/** Progress, stats, and badge collection, computed from the player's simulated check-ins. */
+export function PlayerStatsSections({ progress }: { progress: PlayerProgress }) {
+  const unlocked = progress.badges.filter((badge) => badge.unlocked).length;
   const statItems = [
-    { value: stats.questsCompleted, label: "Quests done" },
-    { value: stats.placesVisited, label: "Places found" },
-    { value: stats.dayStreak, label: "Day streak" },
+    { value: progress.questsDone, label: "Quests done" },
+    { value: progress.placesFound, label: "Places found" },
+    { value: progress.dayStreak, label: "Day streak" },
   ];
 
   return (
@@ -61,20 +61,20 @@ export function PlayerStatsSections({ stats }: { stats: PlayerStats }) {
       <section className="profile-section profile-progress" aria-label="Progress">
         <div className="profile-progress__summary">
           <div className="profile-progress__rank">
-            <span className="profile-progress__level">LVL 1</span>
+            <span className="profile-progress__level">LVL {progress.level}</span>
             <span>Local explorer</span>
           </div>
-          <span className="profile-progress__xp">0 XP</span>
+          <span className="profile-progress__xp">{progress.xp} XP</span>
         </div>
         <div
           className="profile-progress__bar"
           role="progressbar"
           aria-label="Experience"
-          aria-valuenow={0}
+          aria-valuenow={progress.levelPercent}
           aria-valuemin={0}
           aria-valuemax={100}
         >
-          <div className="profile-progress__fill" style={{ width: "0%" }} />
+          <div className="profile-progress__fill" style={{ width: `${progress.levelPercent}%` }} />
         </div>
         <p className="profile-progress__hint">Complete quests to earn XP and level up.</p>
         <ul className="profile-stats">
@@ -91,23 +91,25 @@ export function PlayerStatsSections({ stats }: { stats: PlayerStats }) {
         <h2 className="profile-section__heading" id="badges-heading">
           Badge collection{" "}
           <span className="profile-badges__count">
-            {earned.size}/{BADGES.length}
+            {unlocked}/{progress.badges.length}
           </span>
         </h2>
         <ul className="profile-badges__list">
-          {BADGES.map((badge) => {
-            const locked = !earned.has(badge.id);
-            return (
-              <li key={badge.id} className={`profile-badge${locked ? " profile-badge--locked" : ""}`}>
-                <span className="profile-badge__emblem">{locked && <Image src={lockKeyhole} alt="" />}</span>
-                <span className="profile-badge__title">{badge.title}</span>
-                <span className="profile-badge__milestone">
-                  {badge.milestone}
-                  <span className="visually-hidden">{locked ? " (locked)" : " (earned)"}</span>
-                </span>
-              </li>
-            );
-          })}
+          {progress.badges.map((badge) => (
+            <li
+              key={badge.title}
+              className={`profile-badge${badge.unlocked ? " profile-badge--unlocked" : " profile-badge--locked"}`}
+            >
+              <span className="profile-badge__emblem">
+                {badge.unlocked ? <span aria-hidden="true">★</span> : <Image src={lockKeyhole} alt="" />}
+              </span>
+              <span className="profile-badge__title">{badge.title}</span>
+              <span className="profile-badge__milestone">
+                {badge.milestone}
+                <span className="visually-hidden">{badge.unlocked ? " (unlocked)" : " (locked)"}</span>
+              </span>
+            </li>
+          ))}
         </ul>
       </section>
     </>

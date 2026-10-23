@@ -20,17 +20,32 @@ test.beforeAll(async () => {
     const { insertedId } = await users.insertOne({ ...u, email: `${u.username}@example.com`, passwordHash, createdAt: new Date() });
     ids[u.username] = insertedId;
   }
-  // Casey has some recorded activity and a badge.
+  // Casey finished one quest with three simulated check-ins: 3 places, 80 XP, "First steps".
+  const stop = (n: number) => ({
+    location: { name: `Demo Stop ${n}`, address: `${n} Example Ave`, closingTime: "22:00" },
+    arrivalTime: "10:00",
+    departureTime: "10:20",
+    travelDistance: 1,
+  });
+  const now = new Date();
   await mongo
     .db()
-    .collection("user_stats")
+    .collection("quests")
     .insertOne({
       userId: ids[casey.username],
-      questsCompleted: 3,
-      placesVisited: 7,
-      currentStreakDays: 0,
-      lastActiveDay: null,
-      badges: [{ id: "first_steps", earnedAt: new Date() }],
+      request: "coffee and art",
+      route: {
+        startLocation: { address: "1 Home St" },
+        quests: [stop(1), stop(2), stop(3)],
+        endLocation: { address: "1 Home St" },
+        estimatedCost: 0,
+        mock: true,
+      },
+      checkIns: [now, now, now],
+      status: "done",
+      mock: true,
+      createdAt: now,
+      completedAt: now,
     });
   await mongo.close();
 });
@@ -70,11 +85,12 @@ test("friends see each other's stats; others only see a locked card", async ({ b
 
   // Riley now sees Casey's real stats and earned badge.
   await rileyPage.reload();
-  await expect(stat(rileyPage, "Quests done")).toHaveText("3");
-  await expect(stat(rileyPage, "Places found")).toHaveText("7");
-  await expect(stat(rileyPage, "Day streak")).toHaveText("0");
+  await expect(stat(rileyPage, "Quests done")).toHaveText("1");
+  await expect(stat(rileyPage, "Places found")).toHaveText("3");
+  await expect(stat(rileyPage, "Day streak")).toHaveText("1");
+  await expect(rileyPage.getByText("80 XP")).toBeVisible();
   await expect(rileyPage.getByText("1/4")).toBeVisible();
-  await expect(rileyPage.locator(".profile-badge:not(.profile-badge--locked)")).toHaveText(/First steps/);
+  await expect(rileyPage.locator(".profile-badge--unlocked")).toHaveText(/First steps/);
   await expect(rileyPage.locator(".profile-badge--locked")).toHaveCount(3);
 
   // Own profile shows the friend count too.
