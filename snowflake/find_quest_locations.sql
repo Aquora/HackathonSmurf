@@ -4,7 +4,8 @@
 -- Contract with the API:
 --   CALL <db>.<schema>.FIND_QUEST_LOCATIONS(PARSE_JSON(:preferences_json), :address)
 --   preferences: { desiredTime, desiredBudget, locationPreference, travelMethod }
---   returns VARIANT: array of exactly 10 objects { "name", "address", "closingTime" ("HH:MM", 24h local) }
+--   returns VARIANT: array of exactly 10 objects
+--     { "name", "address", "closingTime" ("HH:MM", 24h local), "estimatedCost" (USD, omitted when unknown) }
 -- The API rejects any result that is not exactly 10 unique locations.
 --
 -- Limitations: there is no geocoding here. Locality is approximated by matching the
@@ -42,11 +43,12 @@ BEGIN
   SELECT ARRAY_AGG(OBJECT_CONSTRUCT(
            'name', NAME,
            'address', ADDRESS,
-           'closingTime', TO_VARCHAR(CLOSING_TIME, 'HH24:MI')))
+           'closingTime', TO_VARCHAR(CLOSING_TIME, 'HH24:MI'),
+           'estimatedCost', ESTIMATED_COST))  -- OBJECT_CONSTRUCT drops the key when NULL (unknown)
          WITHIN GROUP (ORDER BY SCORE DESC, TIEBREAK)
     INTO :result
     FROM (
-      SELECT NAME, ADDRESS, CLOSING_TIME,
+      SELECT NAME, ADDRESS, CLOSING_TIME, ESTIMATED_COST,
              IFF(CONTAINS(:addr, LOWER(CITY)), 2, 0)
                + IFF(:pref <> 'random' AND CONTAINS(:pref, LOWER(CATEGORY)), 3, 0)
                + IFF(ESTIMATED_COST IS NOT NULL AND ESTIMATED_COST <= :budget, 1, 0) AS SCORE,

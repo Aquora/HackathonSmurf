@@ -12,7 +12,10 @@ Interactive docs at `/docs` (disabled when `APP_ENV=production`).
 4. **Snowflake** procedure returns candidate locations; code requires exactly 10 unique ones.
 5. **Cursor** plans a route from those 10 that starts and ends at the user's address.
 6. Code validates the route (known places only, no duplicates, ordered times, open at
-   departure), asks the model once to repair it if invalid, then returns it.
+   departure, within `desiredTime`, catalog costs within `desiredBudget`), asks the model
+   once to repair it if invalid, then returns it. `estimatedCost` is summed by code.
+   If every candidate is closed or none is affordable, it returns `NO_FEASIBLE_ROUTE`
+   with `proven: true` before calling the model.
 
 ## Commands (verified 2026-10-23, Python 3.14 locally, 3.13 in Docker)
 
@@ -21,7 +24,7 @@ python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 cp .env.example .env          # defaults run fully offline with mock adapters
 .venv/bin/python -m app       # http://localhost:8080 — reads .env; real env vars win
-.venv/bin/pytest              # 55 tests
+.venv/bin/pytest              # 73 tests
 
 # Print the exact SQL + JSON the API would send to Snowflake (no Snowflake call)
 .venv/bin/python -m scripts.snowflake_payload "2 hours, \$25, coffee, walking" "123 Main St, Pomona, CA"

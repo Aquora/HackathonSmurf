@@ -1,5 +1,7 @@
 """Validate the planner's route. Code, not the model, owns: start/end address,
-which places exist, no duplicates, time ordering, and closing times."""
+which places exist, no duplicates, time ordering, closing times, the time limit,
+and the budget. The returned estimatedCost is summed from catalog costs; the
+model's own cost total is ignored."""
 
 import math
 from dataclasses import dataclass
@@ -44,6 +46,34 @@ class RouteContext:
     address: str
     candidates: list[Location]
     start_time: str  # local "HH:MM"
+    desired_time: int  # minutes available for the whole outing
+    desired_budget: float  # US dollars
+
+
+@dataclass(frozen=True)
+class Infeasibility:
+    reason: str
+    message: str
+
+
+def _closed_before_start(closing: int, start: int) -> bool:
+    return closing <= start and closing >= LATE_NIGHT_CUTOFF_MINUTES
+
+
+def prove_infeasible(ctx: RouteContext) -> Infeasibility | None:
+    """Checks that hold for every possible route, so a failure is proof rather than a model's opinion."""
+    start = clock_minutes(ctx.start_time) or 0
+    open_now = [
+        c for c in ctx.candidates if (m := clock_minutes(c.closingTime)) is None or not _closed_before_start(m, start)
+    ]
+    if not open_now:
+        return Infeasibility("ALL_CLOSED", "Every candidate place is already closed. Try again earlier in the day.")
+    if not any(c.estimatedCost is not None and c.estimatedCost <= ctx.desired_budget for c in open_now):
+        return Infeasibility(
+            "NONE_WITHIN_BUDGET",
+            "No open candidate place has a known cost within your budget. Try a higher budget.",
+        )
+    return None
 
 
 @dataclass(frozen=True)
@@ -82,6 +112,7 @@ def validate_route(raw: Any, ctx: RouteContext) -> RouteValidationResult:
         return (minutes - start) % DAY
 
     previous_departure = 0
+    cost_total = 0.0
     quests: list[Quest] = []
 
     for i, q in enumerate(parsed.quests):
@@ -113,9 +144,13 @@ def validate_route(raw: Any, ctx: RouteContext) -> RouteValidationResult:
 
             closing = clock_minutes(candidate.closingTime)
             if closing is not None:
-                closed_before_start = closing <= start and closing >= LATE_NIGHT_CUTOFF_MINUTES
-                if closed_before_start or d > elapsed(closing):
+                if _closed_before_start(closing, start) or d > elapsed(closing):
                     issues.append(f'{at} stays at "{candidate.name}" past its closing time {candidate.closingTime}')
+
+        if candidate.estimatedCost is None:
+            issues.append(f'{at}.location "{candidate.name}" has no known cost; choose places with an estimatedCost')
+        else:
+            cost_total += candidate.estimatedCost
 
         quests.append(
             Quest(
@@ -125,6 +160,19 @@ def validate_route(raw: Any, ctx: RouteContext) -> RouteValidationResult:
                 travelDistance=_r2(q.travelDistance),
             )
         )
+
+    # previous_departure is the last departure in minutes since start; the return trip only adds to it.
+    if previous_departure > ctx.desired_time:
+        issues.append(
+            f"the last stop ends {previous_departure} minutes after the start, over the {ctx.desired_time}-minute limit"
+        )
+    if parsed.totalTime is not None:
+        if parsed.totalTime > ctx.desired_time:
+            issues.append(f"totalTime {parsed.totalTime:g} exceeds the {ctx.desired_time}-minute limit")
+        elif parsed.totalTime < previous_departure:
+            issues.append(f"totalTime {parsed.totalTime:g} is shorter than the {previous_departure} minutes the stops take")
+    if _r2(cost_total) > ctx.desired_budget:
+        issues.append(f"stops cost ${cost_total:.2f} in total, over the ${ctx.desired_budget:.2f} budget")
 
     if issues:
         return RouteValidationResult(None, issues)
@@ -138,7 +186,7 @@ def validate_route(raw: Any, ctx: RouteContext) -> RouteValidationResult:
             endLocation=home,
             totalTime=None if parsed.totalTime is None else int(math.floor(parsed.totalTime + 0.5)),
             totalDistance=None if parsed.totalDistance is None else _r2(parsed.totalDistance),
-            estimatedCost=None if parsed.estimatedCost is None else _r2(parsed.estimatedCost),
+            estimatedCost=_r2(cost_total),
         ),
         [],
     )
