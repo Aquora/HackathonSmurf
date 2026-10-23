@@ -21,7 +21,7 @@ Building the frontend? Jump to [Using the API from the frontend](#using-the-api-
 
 ## `GET /health`
 
-Confirms the server process is up. It does **not** check Cursor or Snowflake.
+Confirms the server process is up. It does **not** check Snowflake or Cortex.
 Not rate-limited.
 
 **Input:** none.
@@ -243,7 +243,7 @@ suggest changes. `details.reason` says why, and `details.proven` says whether co
 { "error": { "code": "RATE_LIMITED", "message": "Too many requests. Try again in 59 seconds.", "requestId": "3534b23a83cd461da0a4541ae41d7eb3" } }
 ```
 
-**502** bad upstream data: `details.upstream` is `"cursor"` or `"snowflake"`.
+**502** bad upstream data: `details.upstream` is `"cortex"` or `"snowflake"`.
 
 ```json
 {
@@ -259,7 +259,7 @@ suggest changes. `details.reason` says why, and `details.proven` says whether co
 **503** upstream unavailable:
 
 ```json
-{ "error": { "code": "UPSTREAM_UNAVAILABLE", "message": "The cursor service is unavailable. Please try again.", "requestId": "445bca87d028436e9d27f4a3436f125a", "details": { "upstream": "cursor" } } }
+{ "error": { "code": "UPSTREAM_UNAVAILABLE", "message": "The cortex service is unavailable. Please try again.", "requestId": "445bca87d028436e9d27f4a3436f125a", "details": { "upstream": "cortex" } } }
 ```
 
 **504** upstream timeout:
@@ -295,7 +295,7 @@ For a complete frontend client, see [Using the API from the frontend](#using-the
 - **CORS:** the backend must list your frontend origin in `CORS_ORIGINS`, for example
   `CORS_ORIGINS=http://localhost:3000,http://localhost:5173`. If the browser console shows
   a CORS error, this setting is the cause.
-- **No secrets in the browser:** the frontend never needs Cursor or Snowflake keys. Only call
+- **No secrets in the browser:** the frontend never needs Snowflake or model keys. Only call
   this API.
 
 ### 2. The user journey
@@ -465,7 +465,7 @@ try {
 
 - **Disable the submit button while a request is in flight.** Each request runs the model and
   Snowflake, so it costs money and counts toward the rate limit.
-- **Don't auto-retry in a loop.** The server already retries Cursor. For `502`/`503`/`504`,
+- **Don't auto-retry in a loop.** The server already repairs an invalid model route once. For `502`/`503`/`504`,
   show a "Try again" button. Never retry `400` or `422` without the user changing something.
 - **Cancel on navigation.** Pass an `AbortController` signal and call `abort()` when the user
   leaves the page or edits and resubmits.

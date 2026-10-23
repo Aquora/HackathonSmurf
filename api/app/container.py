@@ -5,8 +5,7 @@ from dataclasses import dataclass
 
 from fastapi import FastAPI
 
-from .adapters.llm.chat_client import JsonChatClient
-from .adapters.llm.cursor_adapter import CursorAdapter
+from .adapters.llm.model_adapter import ModelAdapter
 from .adapters.mock.mock_adapters import MockLocationProvider, MockPreferenceExtractor, MockRoutePlanner
 from .adapters.snowflake.cortex_client import CortexChatClient
 from .adapters.snowflake.snowflake_adapter import SnowflakeLocationProvider, SnowflakePoolExecutor
@@ -33,23 +32,9 @@ def build_service(settings: Settings) -> Wiring:
 
     extractor: PreferenceExtractor
     planner: RoutePlanner
-    if settings.AI_PROVIDER == "cursor":
-        assert settings.CURSOR_API_KEY is not None and settings.CURSOR_MODEL is not None
-        cursor = CursorAdapter(
-            JsonChatClient(
-                base_url=settings.cursor_base_url,
-                api_key=settings.CURSOR_API_KEY.get_secret_value(),
-                model=settings.CURSOR_MODEL,
-                timeout_s=settings.CURSOR_TIMEOUT_S,
-                max_retries=settings.CURSOR_MAX_RETRIES,
-                json_mode=settings.CURSOR_JSON_MODE,
-            )
-        )
-        extractor = planner = cursor
-        closers.append(cursor.aclose)
-    elif settings.AI_PROVIDER == "snowflake":
+    if settings.AI_PROVIDER == "snowflake":
         assert executor is not None
-        extractor = planner = CursorAdapter(
+        extractor = planner = ModelAdapter(
             CortexChatClient(executor, settings.SNOWFLAKE_AI_MODEL, settings.SNOWFLAKE_QUERY_TIMEOUT_S)
         )
     else:

@@ -2,7 +2,7 @@ import re
 from typing import Annotated, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import Field, HttpUrl, SecretStr, ValidationError, field_validator, model_validator
+from pydantic import Field, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -34,15 +34,9 @@ class Settings(BaseSettings):
     QUEST_TIMEZONE: str = "America/Los_Angeles"
     ALLOW_MOCK_IN_PRODUCTION: bool = False
 
-    # cursor = any OpenAI-compatible endpoint; snowflake = Cortex AI_COMPLETE with SNOWFLAKE_AI_MODEL.
-    AI_PROVIDER: Literal["cursor", "snowflake", "mock"] = "mock"
+    # snowflake = Cortex AI_COMPLETE with SNOWFLAKE_AI_MODEL (a llama model); mock = offline regex/fixtures.
+    AI_PROVIDER: Literal["snowflake", "mock"] = "mock"
     SNOWFLAKE_AI_MODEL: str = "llama3.3-70b"
-    CURSOR_API_BASE_URL: HttpUrl | None = None
-    CURSOR_API_KEY: SecretStr | None = None
-    CURSOR_MODEL: str | None = None
-    CURSOR_TIMEOUT_S: float = Field(30, ge=1)
-    CURSOR_MAX_RETRIES: int = Field(2, ge=0, le=5)
-    CURSOR_JSON_MODE: bool = True
 
     DATA_PROVIDER: Literal["snowflake", "mock"] = "mock"
     SNOWFLAKE_ACCOUNT: str | None = None
@@ -91,8 +85,6 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _check_providers(self) -> "Settings":
         missing: list[str] = []
-        if self.AI_PROVIDER == "cursor":
-            missing += [k for k in ("CURSOR_API_BASE_URL", "CURSOR_API_KEY", "CURSOR_MODEL") if getattr(self, k) is None]
         if self.DATA_PROVIDER == "snowflake" or self.AI_PROVIDER == "snowflake":
             missing += [k for k in ("SNOWFLAKE_ACCOUNT", "SNOWFLAKE_USER") if getattr(self, k) is None]
             if self.SNOWFLAKE_PASSWORD is None and self.SNOWFLAKE_PRIVATE_KEY_PATH is None:
@@ -101,7 +93,7 @@ class Settings(BaseSettings):
             raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
         if self.APP_ENV == "production" and not self.ALLOW_MOCK_IN_PRODUCTION and self.uses_mock:
             raise ValueError(
-                "Mock providers are disabled in production. Set AI_PROVIDER=cursor or snowflake and DATA_PROVIDER=snowflake, "
+                "Mock providers are disabled in production. Set AI_PROVIDER=snowflake and DATA_PROVIDER=snowflake, "
                 "or set ALLOW_MOCK_IN_PRODUCTION=true for a labeled demo deployment."
             )
         return self
@@ -109,10 +101,6 @@ class Settings(BaseSettings):
     @property
     def uses_mock(self) -> bool:
         return self.AI_PROVIDER == "mock" or self.DATA_PROVIDER == "mock"
-
-    @property
-    def cursor_base_url(self) -> str:
-        return str(self.CURSOR_API_BASE_URL).rstrip("/")
 
 
 def load_settings(**overrides: object) -> Settings:

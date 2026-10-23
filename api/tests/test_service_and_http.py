@@ -92,7 +92,7 @@ class TestQuestService:
         planner.plan_route.return_value = {"nonsense": True}
         with pytest.raises(AppError) as e:
             await make_service(planner=planner).create_quest(REQUEST)
-        assert (e.value.status_code, e.value.code, e.value.details["upstream"]) == (502, "UPSTREAM_INVALID_RESPONSE", "cursor")
+        assert (e.value.status_code, e.value.code, e.value.details["upstream"]) == (502, "UPSTREAM_INVALID_RESPONSE", "cortex")
         assert planner.plan_route.await_count == 2
 
     async def test_fails_502_when_snowflake_count_wrong(self):
@@ -202,7 +202,7 @@ class TestHttp:
         assert res.status_code == 200
         assert res.json()["startLocation"] == {"address": ADDRESS} == res.json()["endLocation"]
 
-    async def test_snowflake_and_cursor_receive_campus_address(self):
+    async def test_snowflake_and_model_receive_campus_address(self):
         extractor = AsyncMock()
         extractor.extract_preferences.return_value = {}
         locations = AsyncMock()
@@ -221,11 +221,11 @@ class TestHttp:
 
     def test_upstream_outage_maps_to_503_without_internals(self):
         extractor = AsyncMock()
-        extractor.extract_preferences.side_effect = upstream_unavailable("cursor")
+        extractor.extract_preferences.side_effect = upstream_unavailable("cortex")
         res = client(make_service(extractor=extractor)).post("/v1/quests", json=BODY)
         assert res.status_code == 503
         assert res.json()["error"]["code"] == "UPSTREAM_UNAVAILABLE"
-        assert res.json()["error"]["details"] == {"upstream": "cursor"}
+        assert res.json()["error"]["details"] == {"upstream": "cortex"}
 
     def test_unexpected_errors_are_generic_500(self):
         extractor = AsyncMock()

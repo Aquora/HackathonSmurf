@@ -57,8 +57,8 @@ Descriptions:
 )
 
 
-class CursorAdapter:
-    """Preference extraction and route planning through the configured "Cursor" chat endpoint."""
+class ModelAdapter:
+    """Preference extraction and route planning through the configured model client (Snowflake Cortex)."""
 
     def __init__(self, client: JsonChatClient) -> None:
         self._client = client

@@ -2,7 +2,7 @@
 
 Usage (from api/):
     .venv/bin/python -m scripts.snowflake_payload "2 hours, $25, coffee, walking"
-    .venv/bin/python -m scripts.snowflake_payload --cursor "..."   # use the real Cursor model from .env
+    .venv/bin/python -m scripts.snowflake_payload --model "..."    # use the real Cortex llama model from .env
 
 Prints the SQL statement and its two bound parameters.
 """
@@ -22,11 +22,11 @@ from app.domain.types import CAMPUS_LOCATION
 async def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("message")
-    parser.add_argument("--cursor", action="store_true", help="extract preferences with the configured Cursor model")
+    parser.add_argument("--model", action="store_true", help="extract preferences with the Snowflake Cortex llama model")
     args = parser.parse_args()
 
-    settings = load_settings(**({"AI_PROVIDER": "cursor"} if args.cursor else {}))
-    if args.cursor:
+    settings = load_settings(**({"AI_PROVIDER": "snowflake"} if args.model else {}))
+    if args.model:
         from app.container import build_service
 
         extractor = build_service(settings).service._extractor
@@ -44,7 +44,7 @@ async def main() -> None:
     await provider.find_locations(preferences, address)
     sql, params, _ = executor.execute.await_args.args
 
-    print("Extractor:", "Cursor" if args.cursor else "mock (regex)")
+    print("Extractor:", "Cortex llama" if args.model else "mock (regex)")
     print("Raw extractor output:", json.dumps(raw))
     print("\nSQL:", sql)
     print("Param 1 (preferences JSON):")

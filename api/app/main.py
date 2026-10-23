@@ -205,7 +205,7 @@ def create_app(
 
     @app.get("/health")
     async def health() -> dict[str, str]:
-        """Liveness only; does not check Cursor or Snowflake."""
+        """Liveness only; does not check Snowflake or Cortex."""
         return {"status": "ok"}
 
     @app.post(

@@ -8,12 +8,12 @@ Interactive docs at `/docs` (disabled when `APP_ENV=production`).
 
 1. Validate `{ message }`. The start/end address is fixed to Cal Poly Pomona (`CAMPUS_LOCATION`
    in `app/domain/types.py`).
-2. **Cursor** (model) extracts `{ desiredTime, desiredBudget, locationPreference, travelMethod }`.
+2. **Llama** (Snowflake Cortex model) extracts `{ desiredTime, desiredBudget, locationPreference, travelMethod }`.
 3. Code normalizes it; missing/invalid values default to `90`, `30`, `"random"`, `"drive"`.
 4. **Snowflake** procedure returns candidate locations; code requires exactly 10 unique ones.
-5. **Cursor** plans a route from those 10 that starts and ends at Cal Poly Pomona.
+5. **Llama** plans a route from those 10 that starts and ends at Cal Poly Pomona.
    Each of the 10 locations is sent with a randomly assigned task (picked by code), and
-   Cursor writes a short description for every stop it chooses.
+   The model writes a short description for every stop it chooses.
 6. Code validates the route (known places only, no duplicates, ordered times, open at
    departure, within `desiredTime`, catalog costs within `desiredBudget`), asks the model
    once to repair it if invalid, then returns it. `estimatedCost` is summed by code.
@@ -55,9 +55,6 @@ See [../.env.example](../.env.example), the single config file for the API and S
   default `llama3.3-70b`, open-weight) through the same Snowflake connection pool and login, so no extra key
   is needed. The backend role needs `SNOWFLAKE.CORTEX_USER` (granted in `../snowflake/sql/01_setup.sql`).
   Verified 2026-10-23: a full quest took about 24 s, including one budget repair.
-- `AI_PROVIDER=cursor` calls an OpenAI-compatible `POST {CURSOR_API_BASE_URL}/chat/completions`
-  with `CURSOR_API_KEY` / `CURSOR_MODEL`. Cursor's public API is an agents API, so point this at
-  whatever chat-completions gateway serves your model (Cursor-compatible proxy, vLLM, Ollama, etc.).
 - `DATA_PROVIDER=snowflake` calls `LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS` (see
   [../snowflake/README.md](../snowflake/README.md)) with bound parameters,
   using `snowflake-connector-python` in worker threads with a small connection pool.
@@ -75,7 +72,7 @@ app/
   main.py              FastAPI app: routes, error mapping, CORS, security headers, body + rate limits
   services/quest_service.py   orchestrates the flow
   domain/              models, preference defaults, location + route validation (pure)
-  adapters/llm/        httpx chat client (timeouts, bounded retries) + Cursor prompts
+  adapters/llm/        model prompts and JSON parsing (the client itself is adapters/snowflake/cortex_client.py)
   adapters/snowflake/  pooled connector executor + procedure call
   adapters/mock/       offline fictional data and deterministic planner
 tests/                 unit, service, adapter, and HTTP tests

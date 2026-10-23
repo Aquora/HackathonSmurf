@@ -1,9 +1,9 @@
 """Model step via Snowflake Cortex: `SELECT AI_COMPLETE(model, prompt)` on the Snowflake pool.
 
-Drop-in replacement for JsonChatClient (same `complete_json` / `aclose`), so CursorAdapter's
+Drop-in replacement for JsonChatClient (same `complete_json` / `aclose`), so ModelAdapter's
 prompts and validation are reused unchanged. Chat messages are flattened into one prompt
 because AI_COMPLETE takes a single string. Errors from model *output* are reported with
-upstream "cursor" (the API's name for the model step); connection errors come from the
+upstream "cortex" (the API's name for the model step); connection errors come from the
 executor as "snowflake".
 """
 
@@ -37,10 +37,10 @@ class CortexChatClient:
             except ValueError:
                 pass
         if not isinstance(value, str) or not value.strip():
-            raise upstream_invalid("cursor", "model returned no text")
+            raise upstream_invalid("cortex", "model returned no text")
         parsed = extract_json(value)
         if parsed is None:
-            raise upstream_invalid("cursor", "reply was not valid JSON")
+            raise upstream_invalid("cortex", "reply was not valid JSON")
         return parsed
 
     async def aclose(self) -> None:

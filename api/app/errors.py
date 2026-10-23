@@ -10,7 +10,7 @@ ErrorCode = Literal[
     "NOT_FOUND",
     "INTERNAL_ERROR",
 ]
-Upstream = Literal["cursor", "snowflake"]
+Upstream = Literal["cortex", "snowflake"]
 
 
 class AppError(Exception):
