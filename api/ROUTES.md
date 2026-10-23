@@ -43,15 +43,15 @@ ends at that address.
 
 ```json
 {
-  "message": "I have 2 hours and $25. Coffee and art, walking please",
-  "location": { "address": "123 Main St, Pomona, CA" }
+  "message": "I have 2 hours and $25. Coffee and art, walking please"
 }
 ```
 
 | Field | Type | Rules |
 |---|---|---|
 | `message` | string | Required. 1–2000 characters after trimming whitespace. |
-| `location.address` | string | Required. 3–300 characters after trimming whitespace. |
+| `location` | object | Optional. Omit it to start (and end) at the default address, `3801 W Temple Ave, Pomona, CA 91768` (Cal Poly Pomona; set by `DEFAULT_START_ADDRESS`). |
+| `location.address` | string | If `location` is sent: 3–300 characters after trimming whitespace. It must be in Snowflake's Pomona address data. |
 
 The whole body must be 16 KB or less.
 
@@ -172,7 +172,7 @@ Examples:
     "requestId": "f560a1fae5bc4d5794f6339002481854",
     "details": [
       { "path": "message", "message": "String should have at least 1 character" },
-      { "path": "location", "message": "Field required" }
+      { "path": "location.address", "message": "String should have at least 3 characters" }
     ]
   }
 }
@@ -256,7 +256,7 @@ suggest changes. `details.reason` says why, and `details.proven` says whether co
 ```bash
 curl -s -X POST http://localhost:8080/v1/quests \
   -H 'content-type: application/json' \
-  -d '{"message":"2 hours, $25, coffee and art, walking","location":{"address":"123 Main St, Pomona, CA"}}'
+  -d '{"message":"2 hours, $25, coffee and art, walking"}'
 ```
 
 For a complete frontend client, see [Using the API from the frontend](#using-the-api-from-the-frontend).
@@ -297,7 +297,7 @@ These mirror `api/app/domain/types.py`. You can also generate them from `GET /op
 ```ts
 export interface QuestRequest {
   message: string;              // 1–2000 chars
-  location: { address: string } // 3–300 chars
+  location?: { address: string } // optional; omit for the default start (3–300 chars)
 }
 
 export interface Location {
@@ -358,7 +358,11 @@ export async function createQuest(req: QuestRequest, signal?: AbortSignal): Prom
     res = await fetch(`${API_BASE_URL}/v1/quests`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: req.message.trim(), location: { address: req.location.address.trim() } }),
+      body: JSON.stringify(
+        req.location
+          ? { message: req.message.trim(), location: { address: req.location.address.trim() } }
+          : { message: req.message.trim() },
+      ),
       // The server retries the model internally, so allow up to ~2 minutes.
       signal: signal ?? AbortSignal.timeout(120_000),
     });
@@ -391,7 +395,7 @@ export async function createQuest(req: QuestRequest, signal?: AbortSignal): Prom
 ```ts
 try {
   setLoading(true);
-  const route = await createQuest({ message, location: { address } });
+  const route = await createQuest({ message }); // add `location: { address }` to start elsewhere
   setRoute(route);
 } catch (e) {
   if (!(e instanceof ApiError)) return; // aborted

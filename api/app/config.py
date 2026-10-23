@@ -5,9 +5,12 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import Field, HttpUrl, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+from .domain.types import ADDRESS_MAX_LENGTH, DEFAULT_START_ADDRESS
+
 # Snowflake identifiers cannot be bound as parameters, so the procedure name is
 # restricted to plain (optionally qualified) identifiers to rule out SQL injection.
 _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]*(\.[A-Za-z_][A-Za-z0-9_$]*){0,2}$")
+_MODEL_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 
 
 class ConfigError(Exception):
@@ -15,9 +18,12 @@ class ConfigError(Exception):
 
 
 class Settings(BaseSettings):
-    """Loaded from environment variables, then `.env`. Real environment variables win."""
+    """Loaded from environment variables, then `../.env` (the project's main .env when run
+    from api/), then `.env`. Later files override earlier ones; real environment variables win."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True, extra="ignore", case_sensitive=True)
+    model_config = SettingsConfigDict(
+        env_file=("../.env", ".env"), env_ignore_empty=True, extra="ignore", case_sensitive=True
+    )
 
     APP_ENV: Literal["development", "test", "production"] = "development"
     HOST: str = "0.0.0.0"
@@ -27,9 +33,12 @@ class Settings(BaseSettings):
     CORS_ORIGINS: Annotated[list[str], NoDecode] = []
     RATE_LIMIT_PER_MINUTE: int = Field(30, ge=1)
     QUEST_TIMEZONE: str = "America/Los_Angeles"
+    DEFAULT_START_ADDRESS: str = Field(DEFAULT_START_ADDRESS, min_length=3, max_length=ADDRESS_MAX_LENGTH)
     ALLOW_MOCK_IN_PRODUCTION: bool = False
 
-    AI_PROVIDER: Literal["cursor", "mock"] = "mock"
+    # cursor = any OpenAI-compatible endpoint; snowflake = Cortex AI_COMPLETE with SNOWFLAKE_AI_MODEL.
+    AI_PROVIDER: Literal["cursor", "snowflake", "mock"] = "mock"
+    SNOWFLAKE_AI_MODEL: str = "llama3.3-70b"
     CURSOR_API_BASE_URL: HttpUrl | None = None
     CURSOR_API_KEY: SecretStr | None = None
     CURSOR_MODEL: str | None = None
@@ -67,6 +76,13 @@ class Settings(BaseSettings):
             raise ValueError(f'"{v}" is not an IANA time zone') from e
         return v
 
+    @field_validator("SNOWFLAKE_AI_MODEL")
+    @classmethod
+    def _check_model(cls, v: str) -> str:
+        if not _MODEL_NAME.match(v):
+            raise ValueError("must be a Cortex model name such as llama3.3-70b")
+        return v
+
     @field_validator("SNOWFLAKE_LOCATIONS_PROCEDURE")
     @classmethod
     def _check_identifier(cls, v: str) -> str:
@@ -79,7 +95,7 @@ class Settings(BaseSettings):
         missing: list[str] = []
         if self.AI_PROVIDER == "cursor":
             missing += [k for k in ("CURSOR_API_BASE_URL", "CURSOR_API_KEY", "CURSOR_MODEL") if getattr(self, k) is None]
-        if self.DATA_PROVIDER == "snowflake":
+        if self.DATA_PROVIDER == "snowflake" or self.AI_PROVIDER == "snowflake":
             missing += [k for k in ("SNOWFLAKE_ACCOUNT", "SNOWFLAKE_USER") if getattr(self, k) is None]
             if self.SNOWFLAKE_PASSWORD is None and self.SNOWFLAKE_PRIVATE_KEY_PATH is None:
                 missing.append("SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_PATH")
@@ -87,7 +103,7 @@ class Settings(BaseSettings):
             raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
         if self.APP_ENV == "production" and not self.ALLOW_MOCK_IN_PRODUCTION and self.uses_mock:
             raise ValueError(
-                "Mock providers are disabled in production. Set AI_PROVIDER=cursor and DATA_PROVIDER=snowflake, "
+                "Mock providers are disabled in production. Set AI_PROVIDER=cursor or snowflake and DATA_PROVIDER=snowflake, "
                 "or set ALLOW_MOCK_IN_PRODUCTION=true for a labeled demo deployment."
             )
         return self

@@ -22,33 +22,37 @@ Interactive docs at `/docs` (disabled when `APP_ENV=production`).
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
-cp .env.example .env          # defaults run fully offline with mock adapters
-.venv/bin/python -m app       # http://localhost:8080 — reads .env; real env vars win
+cp ../.env.example ../.env    # one .env for the whole project; defaults run offline with mocks
+.venv/bin/python -m app       # http://localhost:8080 — reads ../.env; real env vars win
 .venv/bin/pytest              # 73 tests
 
 # Print the exact SQL + JSON the API would send to Snowflake (no Snowflake call)
 .venv/bin/python -m scripts.snowflake_payload "2 hours, \$25, coffee, walking" "123 Main St, Pomona, CA"
 
 docker build -t local-quest-api .
-docker run -p 8080:8080 --env-file .env -e APP_ENV=production local-quest-api
+docker run -p 8080:8080 --env-file ../.env -e APP_ENV=production local-quest-api
 ```
 
 Requires Python 3.12+. Try it:
 
 ```bash
 curl -s -X POST localhost:8080/v1/quests -H 'content-type: application/json' \
-  -d '{"message":"2 hours, $25, coffee and art, walking","location":{"address":"123 Main St, Pomona, CA"}}'
+  -d '{"message":"2 hours, $25, coffee and art, walking"}'   # starts at DEFAULT_START_ADDRESS
 ```
 
 ## Configuration
 
-See [.env.example](.env.example). Key points:
+See [../.env.example](../.env.example), the single config file for the API and Snowflake scripts. Key points:
 
+- `AI_PROVIDER=snowflake` runs the model step on Snowflake Cortex (`SELECT AI_COMPLETE(SNOWFLAKE_AI_MODEL, prompt)`,
+  default `llama3.3-70b`, open-weight) through the same Snowflake connection pool and login, so no extra key
+  is needed. The backend role needs `SNOWFLAKE.CORTEX_USER` (granted in `../snowflake/sql/01_setup.sql`).
+  Verified 2026-10-23: a full quest took about 24 s, including one budget repair.
 - `AI_PROVIDER=cursor` calls an OpenAI-compatible `POST {CURSOR_API_BASE_URL}/chat/completions`
   with `CURSOR_API_KEY` / `CURSOR_MODEL`. Cursor's public API is an agents API, so point this at
   whatever chat-completions gateway serves your model (Cursor-compatible proxy, vLLM, Ollama, etc.).
-- `DATA_PROVIDER=snowflake` calls the procedure in
-  [../snowflake/find_quest_locations.sql](../snowflake/find_quest_locations.sql) with bound parameters,
+- `DATA_PROVIDER=snowflake` calls `LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS` (see
+  [../snowflake/README.md](../snowflake/README.md)) with bound parameters,
   using `snowflake-connector-python` in worker threads with a small connection pool.
   Key-pair auth (`SNOWFLAKE_PRIVATE_KEY_PATH`) is preferred over passwords.
 - `APP_ENV=production` refuses mock adapters unless `ALLOW_MOCK_IN_PRODUCTION=true`,

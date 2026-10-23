@@ -6,6 +6,7 @@ import pytest
 
 from app.adapters.llm.chat_client import JsonChatClient, extract_json
 from app.adapters.llm.cursor_adapter import CursorAdapter
+from app.adapters.snowflake.cortex_client import CortexChatClient
 from app.adapters.snowflake.snowflake_adapter import SnowflakeLocationProvider
 from app.config import ConfigError, load_settings
 from app.domain.ports import RoutePlanInput
@@ -126,6 +127,28 @@ class TestSnowflakeLocationProvider:
         assert e.value.status_code == 502
 
 
+class TestCortexChatClient:
+    async def test_binds_model_and_prompt_and_parses_encoded_reply(self):
+        executor = AsyncMock()
+        reply = json.dumps('```json\n{"desiredTime": 120}\n```')  # AI_COMPLETE may JSON-encode its string
+        executor.execute.return_value = [{"REPLY": reply}]
+        client = CortexChatClient(executor, "llama3.3-70b", 20)
+        messages = [{"role": "system", "content": "rules"}, {"role": "user", "content": "x'); DROP TABLE t;--"}]
+        assert await client.complete_json(messages) == {"desiredTime": 120}
+        sql, params, timeout = executor.execute.await_args.args
+        assert sql == "SELECT AI_COMPLETE(?, ?) AS REPLY" and timeout == 20
+        assert params[0] == "llama3.3-70b"
+        assert "[SYSTEM]\nrules" in params[1] and "DROP TABLE" in params[1]  # message is data, bound
+
+    @pytest.mark.parametrize("rows", [[], [{"REPLY": None}], [{"REPLY": "no json here"}]])
+    async def test_bad_model_output_is_502(self, rows):
+        executor = AsyncMock()
+        executor.execute.return_value = rows
+        with pytest.raises(AppError) as e:
+            await CortexChatClient(executor, "m", 5).complete_json([{"role": "user", "content": "hi"}])
+        assert e.value.status_code == 502
+
+
 class TestConfig:
     @pytest.fixture(autouse=True)
     def clean_env(self, monkeypatch, tmp_path):
@@ -151,6 +174,14 @@ class TestConfig:
             load_settings(AI_PROVIDER="cursor")
         with pytest.raises(ConfigError, match="SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_PATH"):
             load_settings(DATA_PROVIDER="snowflake", SNOWFLAKE_ACCOUNT="a", SNOWFLAKE_USER="u")
+
+    def test_snowflake_ai_needs_snowflake_credentials_and_safe_model(self):
+        with pytest.raises(ConfigError, match="SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER"):
+            load_settings(AI_PROVIDER="snowflake")
+        with pytest.raises(ConfigError, match="SNOWFLAKE_AI_MODEL"):
+            load_settings(SNOWFLAKE_AI_MODEL="llama'); DROP TABLE t;--")
+        s = load_settings(AI_PROVIDER="snowflake", SNOWFLAKE_ACCOUNT="a", SNOWFLAKE_USER="u", SNOWFLAKE_PRIVATE_KEY_PATH="/k")
+        assert (s.AI_PROVIDER, s.SNOWFLAKE_AI_MODEL) == ("snowflake", "llama3.3-70b")
 
     def test_rejects_injectable_procedure_and_bad_timezone(self):
         with pytest.raises(ConfigError, match="SNOWFLAKE_LOCATIONS_PROCEDURE"):

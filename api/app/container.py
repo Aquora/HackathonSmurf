@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from .adapters.llm.chat_client import JsonChatClient
 from .adapters.llm.cursor_adapter import CursorAdapter
 from .adapters.mock.mock_adapters import MockLocationProvider, MockPreferenceExtractor, MockRoutePlanner
+from .adapters.snowflake.cortex_client import CortexChatClient
 from .adapters.snowflake.snowflake_adapter import SnowflakeLocationProvider, SnowflakePoolExecutor
 from .config import Settings
 from .domain.ports import LocationProvider, PreferenceExtractor, RoutePlanner
@@ -23,6 +24,12 @@ class Wiring:
 
 def build_service(settings: Settings) -> Wiring:
     closers: list[Callable[[], Awaitable[None]]] = []
+
+    # One Snowflake pool, shared by the location lookup and the Cortex model step.
+    executor: SnowflakePoolExecutor | None = None
+    if settings.DATA_PROVIDER == "snowflake" or settings.AI_PROVIDER == "snowflake":
+        executor = SnowflakePoolExecutor(settings)
+        closers.append(executor.aclose)
 
     extractor: PreferenceExtractor
     planner: RoutePlanner
@@ -40,16 +47,20 @@ def build_service(settings: Settings) -> Wiring:
         )
         extractor = planner = cursor
         closers.append(cursor.aclose)
+    elif settings.AI_PROVIDER == "snowflake":
+        assert executor is not None
+        extractor = planner = CursorAdapter(
+            CortexChatClient(executor, settings.SNOWFLAKE_AI_MODEL, settings.SNOWFLAKE_QUERY_TIMEOUT_S)
+        )
     else:
         extractor, planner = MockPreferenceExtractor(), MockRoutePlanner()
 
     locations: LocationProvider
     if settings.DATA_PROVIDER == "snowflake":
-        provider = SnowflakeLocationProvider(
-            SnowflakePoolExecutor(settings), settings.SNOWFLAKE_LOCATIONS_PROCEDURE, settings.SNOWFLAKE_QUERY_TIMEOUT_S
+        assert executor is not None
+        locations = SnowflakeLocationProvider(
+            executor, settings.SNOWFLAKE_LOCATIONS_PROCEDURE, settings.SNOWFLAKE_QUERY_TIMEOUT_S
         )
-        locations = provider
-        closers.append(provider.aclose)
     else:
         locations = MockLocationProvider()
 
@@ -58,7 +69,12 @@ def build_service(settings: Settings) -> Wiring:
             await closer()
 
     service = QuestService(
-        extractor=extractor, locations=locations, planner=planner, timezone=settings.QUEST_TIMEZONE, mock=settings.uses_mock
+        extractor=extractor,
+        locations=locations,
+        planner=planner,
+        timezone=settings.QUEST_TIMEZONE,
+        mock=settings.uses_mock,
+        default_address=settings.DEFAULT_START_ADDRESS,
     )
     return Wiring(service=service, close=close)
 

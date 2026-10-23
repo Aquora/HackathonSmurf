@@ -1,7 +1,8 @@
 """Snowflake candidate lookup.
 
 Calls a stored procedure that takes (preferences VARIANT, address STRING) and returns a
-VARIANT array of {name, address, closingTime} objects. See snowflake/find_quest_locations.sql.
+VARIANT object whose `locations` array holds 10 {name, address, closingTime, ...} objects.
+See ../snowflake/README.md (LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS).
 """
 
 import asyncio
@@ -128,7 +129,7 @@ class SnowflakePoolExecutor:
         except TimeoutError:
             raise upstream_timeout("snowflake") from None
         except Exception as e:  # connector errors
-            log.warning("snowflake call failed: %s", type(e).__name__)
+            log.warning("snowflake call failed: %s: %s", type(e).__name__, str(e)[:500])
             if "timeout" in str(e).lower() or "cancel" in str(e).lower():
                 raise upstream_timeout("snowflake") from None
             raise upstream_unavailable("snowflake") from None

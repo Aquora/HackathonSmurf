@@ -8,7 +8,7 @@ from ..domain.locations import parse_locations
 from ..domain.ports import LocationProvider, PreferenceExtractor, RoutePlanInput, RoutePlanner
 from ..domain.preferences import normalize_preferences
 from ..domain.route import RouteContext, prove_infeasible, validate_route
-from ..domain.types import Preferences, QuestRoute, UserRequest
+from ..domain.types import DEFAULT_START_ADDRESS, Preferences, QuestRoute, UserRequest
 from ..errors import AppError, upstream_invalid
 
 log = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ class QuestService:
         planner: RoutePlanner,
         timezone: str,
         mock: bool,
+        default_address: str = DEFAULT_START_ADDRESS,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._extractor = extractor
@@ -45,9 +46,10 @@ class QuestService:
         self._timezone = timezone
         self._mock = mock  # when True, responses are labeled `mock: true`
         self._now = now
+        self._default_address = default_address  # used when the request omits `location`
 
     async def create_quest(self, request: UserRequest) -> QuestResult:
-        address = request.location.address
+        address = request.location.address if request.location else self._default_address
 
         # 1–4. Cursor extracts preferences; code applies defaults to anything missing/invalid.
         raw_preferences = await self._extractor.extract_preferences(request.message, address)

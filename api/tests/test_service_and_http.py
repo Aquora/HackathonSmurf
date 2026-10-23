@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.adapters.mock.mock_adapters import MOCK_LOCATIONS, MockLocationProvider, MockPreferenceExtractor, MockRoutePlanner
-from app.domain.types import UserLocation, UserRequest
+from app.domain.types import DEFAULT_START_ADDRESS, UserLocation, UserRequest
 from app.errors import AppError, upstream_unavailable
 from app.main import FixedWindowRateLimiter, create_app
 from app.services.quest_service import QuestService, local_clock
@@ -60,6 +60,13 @@ class TestQuestService:
         assert (plan.address, plan.start_time, plan.timezone, plan.locations) == (ADDRESS, "10:00", TZ, MOCK_LOCATIONS)
         assert result.route.startLocation.address == ADDRESS == result.route.endLocation.address
         assert result.route.quests and result.route.mock is None
+
+    async def test_omitted_location_uses_default_start_address(self):
+        locations = AsyncMock()
+        locations.find_locations.return_value = [l.model_dump() for l in MOCK_LOCATIONS]
+        result = await make_service(locations=locations).create_quest(UserRequest(message="coffee, walking"))
+        assert locations.find_locations.await_args.args[1] == DEFAULT_START_ADDRESS
+        assert result.route.startLocation.address == result.route.endLocation.address == DEFAULT_START_ADDRESS
 
     async def test_one_repair_attempt_then_success(self):
         real = MockRoutePlanner()
@@ -134,6 +141,11 @@ class TestHttp:
         assert res.status_code == 200 and res.json() == {"status": "ok"}
         assert res.headers["x-content-type-options"] == "nosniff"
 
+    def test_create_quest_without_location(self):
+        res = client().post("/v1/quests", json={"message": "I have 2 hours and $25, want coffee, walking"})
+        assert res.status_code == 200, res.text
+        assert res.json()["startLocation"] == {"address": DEFAULT_START_ADDRESS}
+
     def test_create_quest_round_trip(self):
         res = client().post("/v1/quests", json=BODY)
         assert res.status_code == 200
@@ -147,7 +159,7 @@ class TestHttp:
         ("payload", "path"),
         [
             ({}, "message"),
-            ({"message": "hi"}, "location"),
+            ({"message": "hi", "location": {"address": "ab"}}, "location.address"),
             ({"message": "   ", "location": {"address": ADDRESS}}, "message"),
             ({"message": "hi", "location": {"address": "x" * 301}}, "location.address"),
             ({"message": "x" * 2001, "location": {"address": ADDRESS}}, "message"),

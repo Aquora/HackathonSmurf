@@ -14,6 +14,8 @@ TravelMethod = str
 LOCATION_COUNT = 10
 MESSAGE_MAX_LENGTH = 2000
 ADDRESS_MAX_LENGTH = 300
+# Start address used when a request omits `location` (Cal Poly Pomona; in Snowflake's Pomona address data).
+DEFAULT_START_ADDRESS = "3801 W Temple Ave, Pomona, CA 91768"
 
 
 class _Model(BaseModel):
@@ -26,7 +28,7 @@ class UserLocation(_Model):
 
 class UserRequest(_Model):
     message: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=MESSAGE_MAX_LENGTH)]
-    location: UserLocation
+    location: UserLocation | None = None  # omitted -> DEFAULT_START_ADDRESS (configurable)
 
 
 class Preferences(_Model):
