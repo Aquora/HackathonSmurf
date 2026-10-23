@@ -1,7 +1,7 @@
 # Snowflake and analytics: contributor guide
 
-For teammates and their AI assistants. Scope: `snowflake/`. This folder currently
-contains instructions only; no implementation, dependencies, or commands are set up.
+For teammates and their AI assistants. Scope: `snowflake/`. Pomona-only OpenStreetMap
+search; see [README.md](README.md) (run, request/response) and [PLAN.md](PLAN.md) (decisions).
 
 ## Before working
 

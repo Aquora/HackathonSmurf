@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from ..domain.locations import parse_locations
 from ..domain.ports import LocationProvider, PreferenceExtractor, RoutePlanInput, RoutePlanner
 from ..domain.preferences import normalize_preferences
-from ..domain.route import RouteContext, validate_route
+from ..domain.route import RouteContext, prove_infeasible, validate_route
 from ..domain.types import CAMPUS_LOCATION, Preferences, QuestRoute, UserRequest
 from ..errors import AppError, upstream_invalid
 
@@ -63,6 +63,22 @@ class QuestService:
 
         # 7–8. Cursor plans a round-trip route; code validates it against the candidates.
         start_time = local_clock(self._now(), self._timezone)
+        ctx = RouteContext(
+            address=address,
+            candidates=candidates,
+            start_time=start_time,
+            desired_time=preferences.desiredTime,
+            desired_budget=preferences.desiredBudget,
+        )
+        # Proven impossible for every route: say so without spending a model call.
+        if (proof := prove_infeasible(ctx)) is not None:
+            raise AppError(
+                422,
+                "NO_FEASIBLE_ROUTE",
+                proof.message,
+                {"preferences": preferences.model_dump(), "reason": proof.reason, "proven": True},
+            )
+
         issues: list[str] = []
         for attempt in range(1, MAX_PLAN_ATTEMPTS + 1):
             raw_route = await self._planner.plan_route(
@@ -75,15 +91,16 @@ class QuestService:
                     previous_issues=issues,
                 )
             )
-            result = validate_route(raw_route, RouteContext(address=address, candidates=candidates, start_time=start_time))
+            result = validate_route(raw_route, ctx)
             if result.route is not None:
                 if not result.route.quests:
+                    # The planner's judgment, not a proof: label it so clients can word it accordingly.
                     raise AppError(
                         422,
                         "NO_FEASIBLE_ROUTE",
-                        "No stops fit your time, budget, and opening hours right now. "
+                        "The planner could not fit any stops into your time, budget, and opening hours. "
                         "Try allowing more time or budget, or a different preference.",
-                        {"preferences": preferences.model_dump()},
+                        {"preferences": preferences.model_dump(), "reason": "PLANNER_FOUND_NONE", "proven": False},
                     )
                 # 9. Return the validated route.
                 route = result.route.model_copy(update={"mock": True}) if self._mock else result.route

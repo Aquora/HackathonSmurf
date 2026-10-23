@@ -47,6 +47,8 @@ class Location(_Model):
     name: str
     address: str
     closingTime: str
+    # Typical spend in US dollars from the catalog; None = unknown (cannot prove the budget).
+    estimatedCost: float | None = None
 
 
 class Quest(_Model):

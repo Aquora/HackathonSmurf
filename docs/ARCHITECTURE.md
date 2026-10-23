@@ -344,6 +344,12 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
   duplicates, ordered times, departure before closing time. One repair request to the
   model on invalid output, then a 502. Empty route → 422 `NO_FEASIBLE_ROUTE`.
   Time/budget are soft targets for the model ("as closely as possible"), not rejected.
+  - 2026-10-23 update: budget and time are now **hard checks in code**. Snowflake returns
+    each place's `estimatedCost`; code sums the chosen stops (ignoring the model's total)
+    and rejects routes over `desiredBudget` or whose stops run past `desiredTime`. Places
+    with unknown cost cannot be used. `NO_FEASIBLE_ROUTE` carries `reason` and `proven`;
+    proven cases (all closed, nothing affordable) skip the model call. Still unverified by
+    code: travel times/distances (no routing provider) and opening times (not in data).
 - **Snowflake:** `snowflake/find_quest_locations.sql` (unverified against an account).
   No geocoding yet; locality is a city-name text match. Not yet: routing provider,
   persistence, check-ins, auth, approved-facts grounding.
@@ -353,3 +359,26 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
   `3801 W Temple Ave, Pomona, CA 91768` (`CAMPUS_LOCATION` in `api/app/domain/types.py`).
   The request no longer accepts a start address; a legacy `location` field is ignored.
   This also settles the "one neighborhood" demo scope around campus.
+
+- Owner finalized top-10 retrieval followed by AI route planning. Missing duration
+  defaults to 90 minutes, budget to $30, and preferences to none. Backend remains
+  responsible for final validation and authoritative response assembly.
+- 2026-10-23: Snowflake retrieval design proposed in `snowflake/PLAN.md`: Marketplace
+  POIs plus curated overlay, OSM opening hours (unknown hours excluded), search centered
+  on the user's location, Cortex Arctic embeddings for preferences, and a stored
+  procedure returning a top-10 CandidateSet. New PlaceRecord fields await contract review.
+- 2026-10-23: GET_CANDIDATES implemented as a Python stored procedure (not Snowflake
+  Scripting) so hours/validation/ranking logic is unit-testable locally; SQL performs
+  the H3/spatial search and Cortex similarity. Undeployed.
+- 2026-10-23: Trial Snowflake accounts block all Cortex AI functions, so preference
+  matching switched to keyword/synonym matching (ranking_version sf_keyword_v1).
+  Revisit embeddings if the account is upgraded.
+- 2026-10-23: Active account switched to one where Cortex works; matching is now hybrid
+  (keyword/synonym or AI_EMBED top-k category closeness, whichever is higher), with
+  automatic keyword-only fallback where AI_EMBED is blocked.
+- 2026-10-23: Snowflake scaled down to a single dataset (OpenStreetMap, Pomona). Removed
+  Overture matching, curated overlay, analytics views, multi-region ingest, and the config
+  table; Cortex is now a top-1 fallback for interests without keyword matches.
+- 2026-10-23: Snowflake entry point is LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS(request VARIANT,
+  address STRING) to match the API. Address geocoded against OSM addresses in Snowflake
+  because the trial account blocks external network access.
