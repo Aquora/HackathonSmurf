@@ -99,3 +99,6 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
   accounts block Cortex AI functions.
 - [x] Moved active Snowflake account to a 120-day trial that allows Cortex (2026-10-23);
   deployed hybrid keyword + AI_EMBED matching (sf_hybrid_v1) and verified live calls.
+- [x] Simplified Snowflake to one dataset (Pomona OpenStreetMap, 95 places with hours) on
+  2026-10-23; removed Overture, curated overlay, analytics, multi-region, and H3. Hybrid
+  keyword + Cortex top-1 fallback matching verified with live calls.

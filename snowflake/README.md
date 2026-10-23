@@ -1,113 +1,83 @@
-# Snowflake: nearby-business candidates
+# Snowflake: top places near the user (Pomona test)
 
-Implements [PLAN.md](PLAN.md). The backend calls one stored procedure with the
-user's location, time window, budget, and interests. The procedure returns up to
-10 ranked nearby businesses that are **known to be open** during the window, as
-`CandidateSet` JSON.
+The backend sends one request JSON. Snowflake returns up to 10 Pomona businesses
+near the start point that are **open during the user's time window**, ranked by how
+well they match the user's interests and how close they are.
 
-**Status (2026-10-23):** deployed to `LOCAL_QUEST_DEV` on two accounts, both AWS_US_EAST_2:
-- **Active:** the 120-day trial `LHXLXHN-WY63275`, login `ERICY`, running `sf_hybrid_v1`.
-- **Earlier:** the trial `YVRSKSP-BQ40898`, which blocks Cortex, running `sf_keyword_v1`.
+**Status (2026-10-23):** deployed to `LOCAL_QUEST_DEV` on account `LHXLXHN-WY63275`
+(AWS_US_EAST_2). It holds 98 OpenStreetMap businesses, 95 of them with readable
+hours. Verified with live calls as `LQ_APP_RO`, an invalid `limit`, and a start
+outside Pomona (successful empty result). An earlier account (`YVRSKSP-BQ40898`)
+still holds an older multi-source version and is stale.
 
-Both hold real OpenStreetMap data for Pomona + Claremont: 244 businesses, 239 of
-them (98%) with readable hours, all searchable. Live calls as `LQ_APP_RO` return 10
-open, ranked candidates. Not loaded yet: Overture data and curated places.
-
-**Preference matching** takes the higher of two scores for each place tag and interest:
-- **Keyword:**
-  - exact tag: 1.0
-  - synonym in `CATALOG.INTEREST_SYNONYM`: its weight
-  - interest as a whole word of a tag: 0.8
-- **Semantic** (only when the active config sets `embed_model`): Cortex `AI_EMBED` ranks
-  every category by similarity to the interest. The top 5, if above cosine 0.8, score
-  0.85, 0.81, and so on. Ranking by closeness instead of raw cosine is deliberate:
-  raw scores for short labels are bunched together. Measured on 2026-10-23: related
-  pairs score about 0.86–0.93, unrelated about 0.75–0.85, and dessert/pizza scores 0.85.
-
-`setup` checks whether `AI_EMBED` works and activates `sf_hybrid_v1` only if it does.
-Otherwise `sf_keyword_v1` stays active. `refresh` embeds only new category labels.
+## Dataset
+The only dataset is **OpenStreetMap**, fetched from the Overpass API. It covers
+named businesses with an `opening_hours` tag inside Pomona's bounding box
+`34.01,-117.83,34.10,-117.71`, which includes Cal Poly Pomona. License: ODbL-1.0.
+Show "© OpenStreetMap contributors" wherever the data appears. OSM has no prices,
+so `budget` is validated but not used for filtering.
 
 ## Layout
-
 | Path | Purpose |
 |---|---|
-| `migrations/V001…V004` | Roles/warehouse/database, catalog tables, ranking config and stages, analytics views |
-| `app/functions.sql` | `APP.PARSE_OSM_HOURS` UDF, `APP.GET_CANDIDATES` procedure, backend grant |
-| `python/lq_snowflake/` | Python behind the UDF and procedure (parser, hours, validation, ranking, handler) |
-| `ingest/01…04` | Load Overture POIs → load OSM hours → load curated overlay → rebuild index and embeddings |
-| `ingest/osm_fetch.py` | Download named OSM businesses with `opening_hours` for one region (Overpass API) |
-| `ingest/curated/*.csv` | Curated overlay templates (headers only; fill with verified data) |
-| `scripts/lq.py` | Runner: connects with key-pair auth and runs setup, deploy, loads, and `call` |
-| `scripts/build_package.py` | Builds `build/lq_snowflake.zip` for the stage |
-| `.env.example` | Connection variable names; copy to `.env` (gitignored) |
+| `sql/01_setup.sql` | Roles `LQ_OWNER`/`LQ_APP_RO`, warehouse `LQ_WH` (XS, 60 s suspend, 10-credit monitor), database, schema `QUEST` |
+| `sql/02_tables.sql` | `PLACE`, `PLACE_HOURS`, `INTEREST_SYNONYM` (seeded), `CATEGORY_EMBEDDING`, stages |
+| `sql/03_functions.sql` | `PARSE_OSM_HOURS` UDF, `GET_CANDIDATES` procedure, backend grant |
+| `sql/04_load.sql` | Replace data from the uploaded NDJSON, parse hours, embed new categories |
+| `python/lq_snowflake/` | Procedure code: `request` (validation), `hours`, `ranking`, `procedure`, `osm_hours` (parser), `settings` |
+| `scripts/lq.py` | Runner: `check`, `setup [--reset]`, `deploy`, `load`, `call` |
+| `scripts/osm_fetch.py` | Pomona OSM download (used by `load`) |
 
-## Connect and run
-
-One-time local setup (verified 2026-10-23; installs `snowflake-connector-python` 5.1.0):
-
-```sh
-python3 -m venv snowflake/.venv
-snowflake/.venv/bin/pip install snowflake-connector-python
-cp snowflake/.env.example snowflake/.env   # then fill it in
-```
-
-First run, from the `local-quest` folder. These steps have not been run against an
-account yet:
+## Run
+One-time local setup: create `snowflake/.venv` with `snowflake-connector-python`,
+then copy `.env.example` to `.env` and fill it in. `.env` is gitignored, and the
+key file stays outside the repo.
 
 ```sh
 PY=snowflake/.venv/bin/python; LQ=snowflake/scripts/lq.py
-$PY $LQ check                                   # connection works
-$PY $LQ setup                                   # roles, LQ_WH, LOCAL_QUEST_DEV, tables, config
-$PY $LQ deploy                                  # UDF + GET_CANDIDATES
-$PY $LQ region --id pomona_claremont --bbox 34.02,-117.80,34.14,-117.68
-$PY $LQ load-osm --region pomona_claremont      # real OSM businesses + hours
-$PY $LQ load-overture --table OVERTURE_MAPS__PLACES.CARTO.PLACE   # optional; needs the Marketplace listing
-$PY $LQ load-curated                            # optional; your verified places
-$PY $LQ refresh                                 # index + Cortex embeddings
-$PY $LQ call path/to/test.json                  # prints the CandidateSet
+$PY $LQ check              # connection works
+$PY $LQ setup              # add --reset to drop and rebuild the database
+$PY $LQ deploy             # after any Python change
+$PY $LQ load               # refresh Pomona data from OSM
+$PY $LQ call test.json     # prints the result; --out FILE, --role LQ_APP_RO
 ```
 
-`call --role LQ_APP_RO` runs as the backend role, which proves the grant works.
-Re-run `deploy` after any Python change, and `refresh` after any load. Without
-Overture, the search uses OSM businesses only, which is fine for a first run.
-
-### Learned on first deploy
-- **Login:** key-pair login must use the *login name*. On the first account that's the email, not the lowercase, case-sensitive user name `ericyangwastaken`, which SQL must quote. On the second account it's `ERICY`. Trial accounts may block all Cortex AI functions; the second account allows them.
-- **Packages:** runtime 3.11 with `snowflake-snowpark-python` and `tzdata` works. `python-tzdata` is rejected.
-- **Statement syntax:** `COMMENT` must precede `RUNTIME_VERSION` in `CREATE FUNCTION`, and `EXECUTE AS` in `CREATE PROCEDURE`.
-- **Still unverified:** the Overture table name, its columns, and its license. `ingest/01` assumes `OVERTURE_MAPS__PLACES.CARTO.PLACE`.
-
-## Backend access
-
-The backend (`api/` owner) connects as a dedicated service user with role
-`LQ_APP_RO`. That role can only call the procedure. Create the user with
-key-pair authentication; only an admin does this, never in a committed file:
-
-```sql
-CREATE USER IF NOT EXISTS LQ_BACKEND TYPE = SERVICE DEFAULT_ROLE = LQ_APP_RO
-    DEFAULT_WAREHOUSE = LQ_WH RSA_PUBLIC_KEY = '<public key>';
-GRANT ROLE LQ_APP_RO TO USER LQ_BACKEND;
+## Request
+```json
+{"request_id": "abc", "limit": 10,
+ "constraints": {"start": {"latitude": 34.0551, "longitude": -117.75},
+  "departure_time": "2026-10-24T14:00:00-07:00", "timezone": "America/Los_Angeles",
+  "available_seconds": 5400, "budget": {"amount_minor": 3000, "currency": "USD"},
+  "interests": ["coffee", "dessert"], "return_to_start": false}}
 ```
+A malformed request fails with `LQ_INVALID_INPUT: <field>: <reason>`.
 
-Backend configuration variable names (store the values only in secret storage):
-`SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER`, `SNOWFLAKE_PRIVATE_KEY_PATH`,
-`SNOWFLAKE_ROLE`, `SNOWFLAKE_WAREHOUSE`, `SNOWFLAKE_DATABASE`.
+## Response
+`{request_id, retrieved_at, ranking_version, constraints, candidate_count, candidates[]}`.
 
-Call with a bound parameter and a timeout:
+Each candidate has:
+- `rank`, `place_id`, `name`, `tags`
+- `coordinates`, `distance_m`, `address`, `website`
+- `opening_intervals`, with real open and close times on the day
+- `hours_as_of`, the OSM snapshot date
+- `source_url`, `attribution`
+- `match_reasons`
 
-```sql
-CALL APP.GET_CANDIDATES(PARSE_JSON(?));   -- bind the request JSON string
-```
+Zero candidates is a valid result.
 
-| Outcome | What the backend sees |
-|---|---|
-| Success | One VARIANT `CandidateSet` with 0–10 candidates. An empty list means a successful search with no matches. |
-| Bad request | Error message starting with `LQ_INVALID_INPUT: <field>: <reason>` |
-| Bad/missing config | `LQ_CONFIGURATION_ERROR: …` → map to `CONFIGURATION_ERROR` |
-| Warehouse/Cortex failure | Snowflake error → map to `DEPENDENCY_UNAVAILABLE` |
+## How results are chosen
+1. Businesses within `min(2000 m, 1.3 m/s × available_seconds / 2)` straight-line distance of the start.
+2. Keep only those open for at least 20 continuous minutes inside `[departure_time, departure_time + available_seconds)`. Unknown hours are excluded, never guessed.
+3. Preference match is the best tag score across the interests:
+   - **Keyword:** 1.0 for an exact tag, the weight in `QUEST.INTEREST_SYNONYM` for a synonym (e.g. coffee → cafe 0.9), or 0.8 when the interest is a word in the tag.
+   - **Cortex fallback:** used only for interests with no keyword match nearby. `AI_EMBED` finds the single closest category (e.g. "cozy study spot" → cafe), which scores 0.85 if its cosine is at least 0.8. Only the top 1 is used because ranks 2–5 were noise on this data.
+4. Score = 0.7 × match + 0.3 × closeness. Ties go to the shorter distance, then `place_id`. The top `limit` are returned.
 
-## Data rules
-- Only places with known, parseable hours are searchable. A place must stay open long enough during the window: its visit length, or 20 minutes by default.
-- `curated` places have verified cost, visit length, and facts. `unverified` places are dataset businesses with OSM hours. Their cost, visit length, and facts are `null`/`[]` and are never estimated.
-- OSM data requires the attribution "© OpenStreetMap contributors" wherever it is shown.
-- Interest text is always a bound value. The only interpolated SQL value is the embedding model name from `APP.CONFIG`, which is checked against a strict pattern.
+Settings live in `python/lq_snowflake/settings.py`. Change `RANKING_VERSION`
+whenever a setting changes. The synonym table can be edited with `MERGE` without
+redeploying.
+
+## Notes
+- **Login:** key-pair login uses the *login name* (`ERICY` here; it was the email on the earlier account).
+- **Cortex on trials:** some trial accounts block Cortex AI functions entirely. This account allows them.
+- **Contract impact:** candidates are leaner than the draft TEAM-CONTRACT `PlaceRecord`. They have no cost, visit time, or facts, because OSM doesn't provide them. Agree the shape with the backend owner.

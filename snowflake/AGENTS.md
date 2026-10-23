@@ -1,8 +1,7 @@
 # Snowflake and analytics: contributor guide
 
-For teammates and their AI assistants. Scope: `snowflake/`. Design is in
-[PLAN.md](PLAN.md); layout, verified commands, and deploy steps are in [README.md](README.md).
-Not yet deployed to Snowflake; `scripts/lq.py` runs setup, loads, and calls.
+For teammates and their AI assistants. Scope: `snowflake/`. Pomona-only OpenStreetMap
+search; see [README.md](README.md) (run, request/response) and [PLAN.md](PLAN.md) (decisions).
 
 ## Before working
 

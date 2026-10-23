@@ -366,3 +366,6 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
 - 2026-10-23: Active account switched to one where Cortex works; matching is now hybrid
   (keyword/synonym or AI_EMBED top-k category closeness, whichever is higher), with
   automatic keyword-only fallback where AI_EMBED is blocked.
+- 2026-10-23: Snowflake scaled down to a single dataset (OpenStreetMap, Pomona). Removed
+  Overture matching, curated overlay, analytics views, multi-region ingest, and the config
+  table; Cortex is now a top-1 fallback for interests without keyword matches.

@@ -84,7 +84,7 @@ def match_reasons(row, request, tags, dist_m):
     if (request.interests and sim is not None and label and interest
             and float(sim) >= settings.REASON_THRESHOLD and interest not in exact):
         if row.get("sim_kind") == "semantic":
-            reasons.append(f"tag '{label}' is among the closest categories to "
+            reasons.append(f"tag '{label}' is the closest category to "
                            f"'{interest}' (Cortex embedding)")
         else:
             reasons.append(f"tag '{label}' related to interest '{interest}'")
