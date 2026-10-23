@@ -1,0 +1,53 @@
+/* 64px-tall hit box; the SVG frame is 69px tall (5px drop shadow) and stretches to the width. */
+.wide-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-white);
+  cursor: pointer;
+}
+
+.wide-button__frame {
+  position: absolute;
+  inset: 0 0 auto 0;
+  width: 100%;
+  height: 69px;
+  pointer-events: none;
+}
+
+.wide-button__label {
+  position: relative;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+
+.wide-button--primary .wide-button__label {
+  font-size: 44px;
+  line-height: 48px;
+}
+
+.wide-button--secondary .wide-button__label {
+  font-size: 34px;
+  line-height: 36px;
+}
+
+.wide-button:hover .wide-button__frame,
+.wide-button:hover .wide-button__label {
+  filter: brightness(1.05);
+}
+
+.wide-button:active .wide-button__frame,
+.wide-button:active .wide-button__label {
+  translate: 0 2px;
+}
+
+.wide-button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}

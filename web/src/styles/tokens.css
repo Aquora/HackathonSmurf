@@ -11,6 +11,18 @@
   --color-white: #ffffff;
   --color-page: #ffffff;
 
+  /* Forms (sign-up frame) */
+  --color-input-bg: #fffced;
+  --color-input-border: #923838;
+  --color-input-shadow: #dfa6a0;
+  --color-muted: #936262;
+  --color-link: #923838;
+
+  /* Bottom navigation (explore frame) */
+  --color-nav-active-bg: #e84a4a;
+  --color-nav-active: #f8d35a;
+  --color-nav-quests: #fffced;
+
   /* Pixel-art palette */
   --pixel-dark: #8a3439;
   --pixel-salmon: #f77a69;

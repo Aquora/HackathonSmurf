@@ -1,18 +1,19 @@
-import type { AnchorHTMLAttributes } from "react";
-import playButton from "../../assets/play-button.svg";
+import type { ComponentProps } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import playButton from "@/assets/play-button.svg";
 import "./PixelButton.css";
 
-interface PixelButtonProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
-  href: string;
+interface PixelButtonProps extends Omit<ComponentProps<typeof Link>, "children"> {
   label: string;
 }
 
 /** Red pixel-edged call-to-action from the landing frame, rendered as a link. */
-export function PixelButton({ label, className, ...anchorProps }: PixelButtonProps) {
+export function PixelButton({ label, className, ...linkProps }: PixelButtonProps) {
   return (
-    <a className={["pixel-button", className].filter(Boolean).join(" ")} {...anchorProps}>
-      <img className="pixel-button__frame" src={playButton} alt="" width={140.93} height={75.4986} />
+    <Link className={["pixel-button", className].filter(Boolean).join(" ")} {...linkProps}>
+      <Image className="pixel-button__frame" src={playButton} alt="" />
       <span className="pixel-button__label">{label}</span>
-    </a>
+    </Link>
   );
 }

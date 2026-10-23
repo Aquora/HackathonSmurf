@@ -137,3 +137,12 @@
   height: 56px;
   margin-top: 49.5px;
 }
+
+/* Reduced motion: show the finished title; inline animation styles are overridden. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-title__quest > span,
+  .hero-title__cursor {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

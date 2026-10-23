@@ -29,8 +29,14 @@ Current phase: API quest-generation slice implemented locally (mock-verified); l
 
 ## 3. Parallel implementation after contracts stabilize
 - [ ] Frontend worker: form/default display, route map/cards, passport, dashboard UI in web/.
-  - [x] Scaffold web/ (Vite + React + TS) and build the Figma landing screen (local only).
-  - [ ] Remaining Figma frames: sign up, quest board, player profile, explore.
+  - [x] Scaffold web/ and build the Figma landing screen (local only).
+  - [x] Move web/ to Next.js and add Auth.js (Google + username/password, MongoDB),
+    with register, sign-in, and protected Explore pages (verified locally against a
+    disposable MongoDB; Google verified only up to the redirect to Google).
+  - [ ] Provision MongoDB and Google OAuth credentials per environment.
+  - [ ] Shared rate-limit store; email verification and password reset.
+  - [ ] Backend verification of web sessions for quest ownership.
+  - [ ] Remaining Figma frames: quest board, player profile, Explore content.
 - [ ] Backend/AI worker: normalization, AI candidate selection/order, grounding, verification, persistence in api/.
 - [ ] Snowflake worker: catalog sourcing/provenance, ranked top-10 queries, event views
   in snowflake/; supply candidate JSON directly to the backend.

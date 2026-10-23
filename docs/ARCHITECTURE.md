@@ -16,10 +16,23 @@ compatibility, hosting, or costs with the integration lead and affected owners;
 material scope, security, and budget changes still require the product owner.
 No component technology has been selected by this documentation change.
 
-Frontend (selected 2026-10-23): Vite + React + TypeScript with plain CSS design
-tokens, chosen to match the `VITE_API_BASE_URL` client guidance in
-`api/ROUTES.md` and keep the static demo deployable anywhere. Hash-based routing
-is used for now; revisit if deep links or server rendering become requirements.
+Frontend (selected 2026-10-23, revised the same day): Next.js 16 App Router +
+React + TypeScript with plain CSS design tokens. It replaced the initial Vite SPA
+because Auth.js has no Vite or FastAPI integration and its official Next.js
+integration was required.
+
+Authentication and accounts (owner decision 2026-10-23): Auth.js v5 in `web/`
+with Google and username/password sign-in, registration, and sign-out. Accounts
+live in MongoDB through the official `@auth/mongodb-adapter`; schema in
+`data/ACCOUNTS.md`. Sessions are encrypted JWT cookies (httpOnly, SameSite=Lax,
+Secure on HTTPS, 30-day lifetime) because the Credentials provider does not
+support database sessions. Trade-off: a session cannot be revoked server-side
+before it expires; rotating `AUTH_SECRET` signs everyone out. Passwords are
+hashed with Argon2id (19 MiB, t=2, p=1). Google accounts are never linked
+automatically to an existing password account with the same email. Rate limiting
+is in-memory per process and must move to a shared store (for example Redis) for
+multi-instance or serverless hosting. The FastAPI backend does not verify these
+sessions yet; quest ownership checks need a session-verification design first.
 
 ## Components
 - Web: preference form, map, route cards, passport, and authenticated dashboard.

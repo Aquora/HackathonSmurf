@@ -1,7 +1,5 @@
-@import "@fontsource/jersey-10";
-@import "@fontsource/jersey-15";
-@import "@fontsource/jersey-20";
 @import "./tokens.css";
+
 
 *,
 *::before,

@@ -1,3 +1,5 @@
+"use client";
+
 import type { CSSProperties } from "react";
 import { PixelButton } from "../../components/PixelButton/PixelButton";
 import { PixelSprite } from "../../components/PixelSprite/PixelSprite";
@@ -16,7 +18,7 @@ const HERO_COINS = [
   { left: 326, top: 254 },
 ];
 
-export const SIGN_UP_HREF = "#/sign-up";
+export const SIGN_UP_HREF = "/register";
 
 export function LandingPage() {
   const [heroRef, heroScale] = useFitScale<HTMLDivElement>(HERO_DESIGN_WIDTH);
