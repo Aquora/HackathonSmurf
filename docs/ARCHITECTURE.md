@@ -248,3 +248,31 @@ retention, latency targets, and release costs remain open.
   within shared contracts and coordinated deployment constraints.
 - Documentation consolidated here for architecture, folder ownership, and team
   workflow. Implementation and canonical schemas remain unverified/unimplemented.
+
+## Recorded decisions: API quest flow (2026-10-23)
+
+Implemented in `api/` at the product owner's request. Contract: `contracts/quest-api.md`.
+
+- **Stack:** Python 3.12+ (3.13 in Docker), FastAPI 0.162, pydantic 2, httpx,
+  snowflake-connector-python 5, uvicorn, pytest. First built in TypeScript/Fastify, then
+  switched to FastAPI at the owner's request the same day; behavior and contract unchanged.
+- **Flow:** model extracts preferences → code applies defaults (90 min, $30, "random",
+  "drive") → Snowflake procedure returns exactly 10 candidates → model plans a route →
+  code validates and returns it. The route **returns to the start address**, superseding
+  the earlier "ends at final stop" proposal. Stop count is no longer fixed at three.
+- **Wire format:** camelCase, dollars, minutes, miles, local `HH:MM` times, as specified
+  by the owner. This differs from the TEAM-CONTRACT draft (snake_case, minor units,
+  seconds, meters); reconcile before other endpoints are built.
+- **"Cursor" model step:** implemented as an OpenAI-compatible chat-completions client
+  (`CURSOR_API_BASE_URL`, `CURSOR_API_KEY`, `CURSOR_MODEL`). Cursor's documented public API
+  is a cloud-agents API, not a JSON chat endpoint, so the gateway/model is an **open
+  decision**. Using an open-weight model behind this interface keeps the open-source AI goal.
+- **Code owns constraints:** start/end address, membership in the 10 candidates, no
+  duplicates, ordered times, departure before closing time. One repair request to the
+  model on invalid output, then a 502. Empty route → 422 `NO_FEASIBLE_ROUTE`.
+  Time/budget are soft targets for the model ("as closely as possible"), not rejected.
+- **Snowflake:** `snowflake/find_quest_locations.sql` (unverified against an account).
+  No geocoding yet; locality is a city-name text match. Not yet: routing provider,
+  persistence, check-ins, auth, approved-facts grounding.
+- **Mocks:** default for local dev; responses carry `mock: true`; refused in production
+  unless `ALLOW_MOCK_IN_PRODUCTION=true`.

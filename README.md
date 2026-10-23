@@ -3,8 +3,8 @@
 A personalized neighborhood adventure planner that connects exploration, playful
 challenges, and discovery of local businesses.
 
-Status: documentation package only. Architecture and scope below are proposals
-based on our discussion; no application, real dataset, or deployment exists.
+Status: quest-generation API implemented in `api/` and verified locally with mock
+data. No real dataset, live integration, or deployment exists yet.
 This folder is self-contained and can become its own repository later.
 
 ## Reading guide
@@ -29,9 +29,12 @@ coordinating cross-component decisions. The contract remains a draft; executable
 schemas, automated checks, and application code have not been implemented.
 
 ## Development
-Commands, dependency versions, and environment configuration will be recorded
-once scaffolding is implemented and verified. Do not treat this document as proof
-that services have been provisioned.
+- Backend API (Python/FastAPI): see [api/README.md](api/README.md) for verified commands
+  (`pip install -e ".[dev]"`, `python -m app`, `pytest`). Runs offline with labeled mock data by default.
+- API routes, inputs and responses: [api/ROUTES.md](api/ROUTES.md).
+- Snowflake procedure (not yet run against an account): [snowflake/find_quest_locations.sql](snowflake/find_quest_locations.sql).
+
+No live services have been provisioned or verified yet.
 
 ## License
 Undecided. Select an application license before publishing as open source; track
