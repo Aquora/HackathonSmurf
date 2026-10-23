@@ -1,0 +1,35 @@
+/* Design tokens from the LocalQuest Figma file (dNPMN12L6f9V9tFchiIdeH). */
+:root {
+  /* Color */
+  --color-header: #b13e3e;
+  --color-hero: #e84a4a;
+  --color-button: #f56060;
+  --color-gold: #f8d35a;
+  --color-gold-bright: #fae570;
+  --color-outline: #b54848;
+  --color-ink: #390000;
+  --color-white: #ffffff;
+  --color-page: #ffffff;
+
+  /* Pixel-art palette */
+  --pixel-dark: #8a3439;
+  --pixel-salmon: #f77a69;
+  --pixel-gold: #f8d35a;
+  --pixel-cream: #fffced;
+  --pixel-light: #fff1b5;
+
+  /* Typography: three Jersey cuts, each used at specific sizes in the design */
+  --font-display: "Jersey 20", system-ui, sans-serif;
+  --font-title: "Jersey 15", system-ui, sans-serif;
+  --font-body: "Jersey 10", system-ui, sans-serif;
+
+  /* Shadows: hard, unblurred pixel drop shadows */
+  --shadow-text-lg: 0 4px 0 rgba(0, 0, 0, 0.25);
+  --shadow-text-sm: 0 2px 0 rgba(0, 0, 0, 0.25);
+  --shadow-pixel: 2px 3px 0 rgba(0, 0, 0, 0.25);
+
+  /* Layout */
+  --layout-max-width: 440px;
+  --layout-gutter: 16px;
+  --header-height: 84px;
+}

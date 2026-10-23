@@ -1,7 +1,20 @@
 # Frontend: contributor guide
 
-For teammates and their AI assistants. Scope: `web/`. This folder currently
-contains instructions only; no implementation, dependencies, or commands are set up.
+For teammates and their AI assistants. Scope: `web/`.
+
+## Current state
+
+- Stack: Vite + React 19 + TypeScript, plain CSS with tokens in
+  `src/styles/tokens.css`, `motion` for Figma-authored animation, self-hosted
+  Jersey fonts via `@fontsource`. Tests: Vitest + Testing Library (jsdom).
+- Commands (verified): `npm install`, `npm run dev` (port 5173), `npm test`,
+  `npm run typecheck`, `npm run build`.
+- Built: landing screen from the LocalQuest Figma file
+  (`dNPMN12L6f9V9tFchiIdeH`, frame "Main Page", node 1:3). Play links to
+  `#/sign-up`, which is a placeholder until the sign-up frame is built.
+- Shared UI: `AppHeader`, `PixelButton`, and `PixelSprite` (pixel art stored as
+  run data in `sprites.ts`). Reuse these for the other Figma frames.
+- No API calls yet; when added, read the base URL from `VITE_API_BASE_URL`.
 
 ## Before working
 

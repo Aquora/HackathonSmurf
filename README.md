@@ -55,6 +55,9 @@ secret configuration. `data/` contains definitions and guidance, not live record
 ## Development
 - Backend API (Python/FastAPI): see [api/README.md](api/README.md) for verified commands
   (`pip install -e ".[dev]"`, `python -m app`, `pytest`). Runs offline with labeled mock data by default.
+- Frontend (Vite + React + TypeScript), from `web/`: `npm install`, `npm run dev`
+  (http://localhost:5173), `npm test`, `npm run build`. Only the landing screen is
+  built so far; it does not call the API yet.
 - API routes, inputs and responses: [api/ROUTES.md](api/ROUTES.md).
 - Snowflake procedure (not yet run against an account): [snowflake/find_quest_locations.sql](snowflake/find_quest_locations.sql).
 

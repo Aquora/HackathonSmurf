@@ -29,6 +29,8 @@ Current phase: API quest-generation slice implemented locally (mock-verified); l
 
 ## 3. Parallel implementation after contracts stabilize
 - [ ] Frontend worker: form/default display, route map/cards, passport, dashboard UI in web/.
+  - [x] Scaffold web/ (Vite + React + TS) and build the Figma landing screen (local only).
+  - [ ] Remaining Figma frames: sign up, quest board, player profile, explore.
 - [ ] Backend/AI worker: normalization, AI candidate selection/order, grounding, verification, persistence in api/.
 - [ ] Snowflake worker: catalog sourcing/provenance, ranked top-10 queries, event views
   in snowflake/; supply candidate JSON directly to the backend.

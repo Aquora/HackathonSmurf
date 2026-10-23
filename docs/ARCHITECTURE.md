@@ -16,6 +16,11 @@ compatibility, hosting, or costs with the integration lead and affected owners;
 material scope, security, and budget changes still require the product owner.
 No component technology has been selected by this documentation change.
 
+Frontend (selected 2026-10-23): Vite + React + TypeScript with plain CSS design
+tokens, chosen to match the `VITE_API_BASE_URL` client guidance in
+`api/ROUTES.md` and keep the static demo deployable anywhere. Hash-based routing
+is used for now; revisit if deep links or server rendering become requirements.
+
 ## Components
 - Web: preference form, map, route cards, passport, and authenticated dashboard.
 - API: input validation/defaults, candidate retrieval, AI-plan orchestration,

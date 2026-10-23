@@ -1,0 +1,139 @@
+/* ---------- Hero (red band, Figma y 84–508) ---------- */
+
+.landing-hero {
+  background: var(--color-hero) url("../../assets/hero-background.svg") center / 100% 100% no-repeat;
+}
+
+.landing-hero__fit {
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.landing-hero__canvas {
+  position: relative;
+  width: 440px;
+  height: 348px;
+  transform: scale(var(--hero-scale, 1));
+  transform-origin: top left;
+}
+
+.hero-title {
+  margin: 0;
+  font-weight: normal;
+}
+
+.hero-title__local,
+.hero-title__quest {
+  position: absolute;
+  display: flex;
+  align-items: center;
+}
+
+.hero-title__local {
+  left: 16px;
+  top: 94px;
+  width: 325px;
+  height: 102px;
+  font-family: var(--font-display);
+  font-size: 132px;
+  line-height: 33px;
+  color: var(--color-white);
+  text-shadow: var(--shadow-text-lg);
+}
+
+.hero-title__quest {
+  left: 51px;
+  top: 229px;
+  width: 295px;
+  height: 34px;
+  font-family: var(--font-title);
+  font-size: 108px;
+  line-height: 33px;
+  color: var(--color-gold-bright);
+  text-shadow: var(--shadow-text-lg);
+}
+
+.hero-title__cursor {
+  position: absolute;
+  left: 288px;
+  top: 200px;
+  width: 5px;
+  height: 70px;
+  background: var(--color-gold-bright);
+  border: 1px solid var(--color-outline);
+  box-shadow: var(--shadow-pixel);
+}
+
+.landing-hero__tagline {
+  position: absolute;
+  left: 16px;
+  top: 279px;
+  width: 324px;
+  height: 52.5px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  font-family: var(--font-body);
+  font-size: 27px;
+  line-height: 25px;
+  color: var(--color-white);
+  text-shadow: var(--shadow-text-sm);
+}
+
+.landing-hero__coin {
+  position: absolute;
+}
+
+.landing-hero__village {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  max-width: var(--layout-max-width);
+  height: 68px;
+  margin: 0 auto;
+  padding: 0 var(--layout-gutter);
+}
+
+.landing-hero__grass {
+  height: 8px;
+  background: var(--color-gold);
+  border: 2px solid var(--color-outline);
+}
+
+/* ---------- Intro (white section, Figma y 508–956) ---------- */
+
+.landing-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 23px var(--layout-gutter) 131px;
+}
+
+.landing-intro__text {
+  display: flex;
+  align-items: center;
+  max-width: 312px;
+  min-height: 69px;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 20px;
+  line-height: 22px;
+  text-align: center;
+  color: var(--color-ink);
+}
+
+.landing-intro__play {
+  margin-top: 49px;
+}
+
+.landing-intro__decorations {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  align-self: stretch;
+  height: 56px;
+  margin-top: 49.5px;
+}
