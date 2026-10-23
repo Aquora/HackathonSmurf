@@ -215,7 +215,7 @@ def create_app(
         responses={400: {}, 422: {}, 429: {}, 502: {}, 503: {}, 504: {}},
     )
     async def create_quest(body: UserRequest) -> QuestRoute:
-        """Turn a free-text request and start address into a validated round-trip quest."""
+        """Turn a free-text request into a validated round-trip quest from and back to Cal Poly Pomona."""
         result = await service.create_quest(body)
         return result.route
 

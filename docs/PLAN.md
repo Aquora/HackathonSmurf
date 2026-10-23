@@ -59,3 +59,5 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
   mock adapters, route validation, and 55 passing tests. Verified locally and in Docker in
   mock mode only. Not verified: live model gateway, Snowflake procedure. Open: which
   endpoint serves "Cursor".
+- [x] 2026-10-23: Fixed every quest's start and end to Cal Poly Pomona; `POST /v1/quests`
+  now takes only `message`. 56 tests pass (mock mode).

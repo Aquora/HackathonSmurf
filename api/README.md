@@ -1,16 +1,17 @@
 # Local Quest API
 
-Python + FastAPI backend that turns a free-text request and a start address into a
-round-trip quest. **Routes, inputs and responses: [ROUTES.md](ROUTES.md).**
+Python + FastAPI backend that turns a free-text request into a round-trip quest that
+always starts and ends at Cal Poly Pomona (3801 W Temple Ave, Pomona, CA 91768). **Routes, inputs and responses: [ROUTES.md](ROUTES.md).**
 Interactive docs at `/docs` (disabled when `APP_ENV=production`).
 
 ## Flow (`POST /v1/quests`)
 
-1. Validate `{ message, location: { address } }`.
+1. Validate `{ message }`. The start/end address is fixed to Cal Poly Pomona (`CAMPUS_LOCATION`
+   in `app/domain/types.py`).
 2. **Cursor** (model) extracts `{ desiredTime, desiredBudget, locationPreference, travelMethod }`.
 3. Code normalizes it; missing/invalid values default to `90`, `30`, `"random"`, `"drive"`.
 4. **Snowflake** procedure returns candidate locations; code requires exactly 10 unique ones.
-5. **Cursor** plans a route from those 10 that starts and ends at the user's address.
+5. **Cursor** plans a route from those 10 that starts and ends at Cal Poly Pomona.
 6. Code validates the route (known places only, no duplicates, ordered times, open at
    departure), asks the model once to repair it if invalid, then returns it.
 
@@ -21,10 +22,10 @@ python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 cp .env.example .env          # defaults run fully offline with mock adapters
 .venv/bin/python -m app       # http://localhost:8080 — reads .env; real env vars win
-.venv/bin/pytest              # 55 tests
+.venv/bin/pytest              # 56 tests
 
 # Print the exact SQL + JSON the API would send to Snowflake (no Snowflake call)
-.venv/bin/python -m scripts.snowflake_payload "2 hours, \$25, coffee, walking" "123 Main St, Pomona, CA"
+.venv/bin/python -m scripts.snowflake_payload "2 hours, \$25, coffee, walking"
 
 docker build -t local-quest-api .
 docker run -p 8080:8080 --env-file .env -e APP_ENV=production local-quest-api
@@ -34,7 +35,7 @@ Requires Python 3.12+. Try it:
 
 ```bash
 curl -s -X POST localhost:8080/v1/quests -H 'content-type: application/json' \
-  -d '{"message":"2 hours, $25, coffee and art, walking","location":{"address":"123 Main St, Pomona, CA"}}'
+  -d '{"message":"2 hours, $25, coffee and art, walking"}'
 ```
 
 ## Configuration
@@ -73,4 +74,4 @@ tests/                 unit, service, adapter, and HTTP tests
 - Rate limiting is in-memory per process; use a shared store if you run several instances
   or workers.
 - No authentication yet: the endpoint is public. Add auth before exposing paid model usage widely.
-- Request bodies (messages, addresses) are not logged.
+- Request bodies (messages) are not logged.

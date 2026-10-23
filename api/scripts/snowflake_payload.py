@@ -1,8 +1,8 @@
 """Print exactly what the API would send to Snowflake, without calling Snowflake.
 
 Usage (from api/):
-    .venv/bin/python -m scripts.snowflake_payload "2 hours, $25, coffee, walking" "123 Main St, Pomona, CA"
-    .venv/bin/python -m scripts.snowflake_payload --cursor "..." "..."   # use the real Cursor model from .env
+    .venv/bin/python -m scripts.snowflake_payload "2 hours, $25, coffee, walking"
+    .venv/bin/python -m scripts.snowflake_payload --cursor "..."   # use the real Cursor model from .env
 
 Prints the SQL statement and its two bound parameters.
 """
@@ -16,12 +16,12 @@ from app.adapters.mock.mock_adapters import MockPreferenceExtractor
 from app.adapters.snowflake.snowflake_adapter import SnowflakeLocationProvider
 from app.config import load_settings
 from app.domain.preferences import normalize_preferences
+from app.domain.types import CAMPUS_LOCATION
 
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("message")
-    parser.add_argument("address")
     parser.add_argument("--cursor", action="store_true", help="extract preferences with the configured Cursor model")
     args = parser.parse_args()
 
@@ -33,14 +33,15 @@ async def main() -> None:
     else:
         extractor = MockPreferenceExtractor()
 
-    raw = await extractor.extract_preferences(args.message, args.address)
+    address = CAMPUS_LOCATION.address  # quests always start at Cal Poly Pomona
+    raw = await extractor.extract_preferences(args.message, address)
     preferences = normalize_preferences(raw)
 
     # Fake executor: records the call instead of running it.
     executor = AsyncMock()
     executor.execute.return_value = [{"RESULT": "[]"}]
     provider = SnowflakeLocationProvider(executor, settings.SNOWFLAKE_LOCATIONS_PROCEDURE, settings.SNOWFLAKE_QUERY_TIMEOUT_S)
-    await provider.find_locations(preferences, args.address)
+    await provider.find_locations(preferences, address)
     sql, params, _ = executor.execute.await_args.args
 
     print("Extractor:", "Cursor" if args.cursor else "mock (regex)")

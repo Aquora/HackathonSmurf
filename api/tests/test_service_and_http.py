@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.adapters.mock.mock_adapters import MOCK_LOCATIONS, MockLocationProvider, MockPreferenceExtractor, MockRoutePlanner
-from app.domain.types import UserLocation, UserRequest
+from app.domain.types import CAMPUS_LOCATION, UserRequest
 from app.errors import AppError, upstream_unavailable
 from app.main import FixedWindowRateLimiter, create_app
 from app.services.quest_service import QuestService, local_clock
@@ -13,8 +13,8 @@ from app.services.quest_service import QuestService, local_clock
 # 2026-10-23 17:00Z = 10:00 in America/Los_Angeles (PDT).
 NOW = datetime(2026, 10, 23, 17, 0, tzinfo=UTC)
 TZ = "America/Los_Angeles"
-ADDRESS = "1 Home St, Demo City, CA 90000"
-BODY = {"message": "I have 2 hours and $25, want coffee and art, walking", "location": {"address": ADDRESS}}
+ADDRESS = "3801 W Temple Ave, Pomona, CA 91768"  # Cal Poly Pomona
+BODY = {"message": "I have 2 hours and $25, want coffee and art, walking"}
 REQUEST = UserRequest.model_validate(BODY)
 
 
@@ -50,7 +50,7 @@ class TestQuestService:
         planner.plan_route.side_effect = real.plan_route
 
         result = await make_service(extractor, locations, planner).create_quest(
-            UserRequest(message="surprise me", location=UserLocation(address=ADDRESS))
+            UserRequest(message="surprise me")
         )
 
         extractor.extract_preferences.assert_awaited_once_with("surprise me", ADDRESS)
@@ -123,10 +123,9 @@ class TestHttp:
         ("payload", "path"),
         [
             ({}, "message"),
-            ({"message": "hi"}, "location"),
-            ({"message": "   ", "location": {"address": ADDRESS}}, "message"),
-            ({"message": "hi", "location": {"address": "x" * 301}}, "location.address"),
-            ({"message": "x" * 2001, "location": {"address": ADDRESS}}, "message"),
+            ({"message": "   "}, "message"),
+            ({"message": "x" * 2001}, "message"),
+            ({"message": 42}, "message"),
         ],
     )
     def test_rejects_invalid_body(self, payload, path):
@@ -135,12 +134,28 @@ class TestHttp:
         assert res.json()["error"]["code"] == "VALIDATION_ERROR"
         assert path in [d["path"] for d in res.json()["error"]["details"]]
 
+    def test_always_starts_and_ends_at_cal_poly_pomona(self):
+        assert CAMPUS_LOCATION.address == ADDRESS
+        # A client-supplied location (old request shape) is ignored, not used.
+        res = client().post("/v1/quests", json={**BODY, "location": {"address": "1 Elsewhere Rd, Somewhere, NY"}})
+        assert res.status_code == 200
+        assert res.json()["startLocation"] == {"address": ADDRESS} == res.json()["endLocation"]
+
+    async def test_snowflake_and_cursor_receive_campus_address(self):
+        extractor = AsyncMock()
+        extractor.extract_preferences.return_value = {}
+        locations = AsyncMock()
+        locations.find_locations.return_value = [l.model_dump() for l in MOCK_LOCATIONS]
+        await make_service(extractor=extractor, locations=locations).create_quest(REQUEST)
+        assert extractor.extract_preferences.await_args.args[1] == ADDRESS
+        assert locations.find_locations.await_args.args[1] == ADDRESS
+
     def test_malformed_json(self):
         res = client().post("/v1/quests", content="{bad", headers={"content-type": "application/json"})
         assert res.status_code == 400 and res.json()["error"]["message"] == "Malformed JSON body."
 
     def test_body_too_large(self):
-        big = {"message": "x" * 20_000, "location": {"address": ADDRESS}}
+        big = {"message": "x" * 20_000}
         assert client().post("/v1/quests", json=big).status_code == 413
 
     def test_upstream_outage_maps_to_503_without_internals(self):

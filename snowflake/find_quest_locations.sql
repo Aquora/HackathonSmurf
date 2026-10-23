@@ -1,14 +1,15 @@
--- Local Quest: candidate location lookup used by the API (api/src/adapters/snowflake).
+-- Local Quest: candidate location lookup used by the API (api/app/adapters/snowflake).
 -- Status: reference implementation, NOT yet run against a Snowflake account.
 --
 -- Contract with the API:
 --   CALL <db>.<schema>.FIND_QUEST_LOCATIONS(PARSE_JSON(:preferences_json), :address)
+--   address is always Cal Poly Pomona: '3801 W Temple Ave, Pomona, CA 91768'.
 --   preferences: { desiredTime, desiredBudget, locationPreference, travelMethod }
 --   returns VARIANT: array of exactly 10 objects { "name", "address", "closingTime" ("HH:MM", 24h local) }
 -- The API rejects any result that is not exactly 10 unique locations.
 --
 -- Limitations: there is no geocoding here. Locality is approximated by matching the
--- place's city against the user's address text. Replace with geospatial ranking
+-- place's city against the start address text (so places in Pomona rank first). Replace with geospatial ranking
 -- (e.g. ST_DISTANCE on a GEOGRAPHY column) once start coordinates are available.
 
 CREATE DATABASE IF NOT EXISTS LOCAL_QUEST;

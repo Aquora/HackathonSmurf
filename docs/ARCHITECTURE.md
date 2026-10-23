@@ -276,3 +276,7 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
   persistence, check-ins, auth, approved-facts grounding.
 - **Mocks:** default for local dev; responses carry `mock: true`; refused in production
   unless `ALLOW_MOCK_IN_PRODUCTION=true`.
+- **Fixed start (2026-10-23):** every quest starts and ends at Cal Poly Pomona,
+  `3801 W Temple Ave, Pomona, CA 91768` (`CAMPUS_LOCATION` in `api/app/domain/types.py`).
+  The request no longer accepts a start address; a legacy `location` field is ignored.
+  This also settles the "one neighborhood" demo scope around campus.

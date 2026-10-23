@@ -8,7 +8,7 @@ from ..domain.locations import parse_locations
 from ..domain.ports import LocationProvider, PreferenceExtractor, RoutePlanInput, RoutePlanner
 from ..domain.preferences import normalize_preferences
 from ..domain.route import RouteContext, validate_route
-from ..domain.types import Preferences, QuestRoute, UserRequest
+from ..domain.types import CAMPUS_LOCATION, Preferences, QuestRoute, UserRequest
 from ..errors import AppError, upstream_invalid
 
 log = logging.getLogger(__name__)
@@ -47,7 +47,8 @@ class QuestService:
         self._now = now
 
     async def create_quest(self, request: UserRequest) -> QuestResult:
-        address = request.location.address
+        # Quests always start and end at Cal Poly Pomona.
+        address = CAMPUS_LOCATION.address
 
         # 1–4. Cursor extracts preferences; code applies defaults to anything missing/invalid.
         raw_preferences = await self._extractor.extract_preferences(request.message, address)

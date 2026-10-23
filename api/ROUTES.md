@@ -36,24 +36,23 @@ Not rate-limited.
 
 ## `POST /v1/quests`
 
-Turns a free-text request and a starting address into a quest route that starts and
-ends at that address.
+Turns a free-text request into a quest route that **always starts and ends at Cal Poly
+Pomona** (`3801 W Temple Ave, Pomona, CA 91768`). Users can't choose a different start.
 
 ### Input
 
 ```json
 {
-  "message": "I have 2 hours and $25. Coffee and art, walking please",
-  "location": { "address": "123 Main St, Pomona, CA" }
+  "message": "I have 2 hours and $25. Coffee and art, walking please"
 }
 ```
 
 | Field | Type | Rules |
 |---|---|---|
 | `message` | string | Required. 1–2000 characters after trimming whitespace. |
-| `location.address` | string | Required. 3–300 characters after trimming whitespace. |
 
-The whole body must be 16 KB or less.
+The whole body must be 16 KB or less. Any other fields are ignored, including a
+`location` sent by older clients.
 
 What happens to the message: the model reads it for time, budget, place preference and
 travel method. Anything it can't find uses a default:
@@ -69,7 +68,7 @@ travel method. Anything it can't find uses a default:
 
 ```json
 {
-  "startLocation": { "address": "123 Main St, Pomona, CA" },
+  "startLocation": { "address": "3801 W Temple Ave, Pomona, CA 91768" },
   "quests": [
     {
       "location": {
@@ -92,7 +91,7 @@ travel method. Anything it can't find uses a default:
       "travelDistance": 1.0
     }
   ],
-  "endLocation": { "address": "123 Main St, Pomona, CA" },
+  "endLocation": { "address": "3801 W Temple Ave, Pomona, CA 91768" },
   "totalTime": 100,
   "totalDistance": 3.0,
   "estimatedCost": 16.0,
@@ -102,7 +101,7 @@ travel method. Anything it can't find uses a default:
 
 | Field | Type | Always present? | Meaning |
 |---|---|---|---|
-| `startLocation.address` | string | yes | Always the request's address. |
+| `startLocation.address` | string | yes | Always Cal Poly Pomona: `3801 W Temple Ave, Pomona, CA 91768`. |
 | `quests` | array | yes | At least one stop, at most 10, in visiting order. |
 | `quests[].location.name` | string | yes | Place name from Snowflake. |
 | `quests[].location.address` | string | yes | Place address from Snowflake. |
@@ -110,7 +109,7 @@ travel method. Anything it can't find uses a default:
 | `quests[].arrivalTime` | string | yes | Local `"HH:MM"` (24-hour). |
 | `quests[].departureTime` | string | yes | Local `"HH:MM"` (24-hour), before the place closes. |
 | `quests[].travelDistance` | number | yes | Miles from the previous point to this stop. |
-| `endLocation.address` | string | yes | Always the request's address. |
+| `endLocation.address` | string | yes | Always Cal Poly Pomona (same as `startLocation`). |
 | `totalTime` | integer | no | Estimated minutes for the whole trip, including the return. |
 | `totalDistance` | number | no | Estimated miles, including the return. |
 | `estimatedCost` | number | no | Estimated spend in US dollars. |
@@ -162,10 +161,9 @@ Examples:
   "error": {
     "code": "VALIDATION_ERROR",
     "message": "Invalid request body.",
-    "requestId": "f560a1fae5bc4d5794f6339002481854",
+    "requestId": "246e9cea0a45478ca2c7c508b5003fb3",
     "details": [
-      { "path": "message", "message": "String should have at least 1 character" },
-      { "path": "location", "message": "Field required" }
+      { "path": "message", "message": "String should have at least 1 character" }
     ]
   }
 }
@@ -240,7 +238,7 @@ Examples:
 ```bash
 curl -s -X POST http://localhost:8080/v1/quests \
   -H 'content-type: application/json' \
-  -d '{"message":"2 hours, $25, coffee and art, walking","location":{"address":"123 Main St, Pomona, CA"}}'
+  -d '{"message":"2 hours, $25, coffee and art, walking"}'
 ```
 
 For a complete frontend client, see [Using the API from the frontend](#using-the-api-from-the-frontend).
@@ -262,7 +260,7 @@ For a complete frontend client, see [Using the API from the frontend](#using-the
 ### 2. The user journey
 
 ```text
-[Form: message + start address]
+[Form: message]   (start/end is always Cal Poly Pomona)
         │  POST /v1/quests
         ▼
 [Loading: "Planning your quest…"]   (several seconds, sometimes ~30 s)
@@ -281,8 +279,10 @@ These mirror `api/app/domain/types.py`. You can also generate them from `GET /op
 ```ts
 export interface QuestRequest {
   message: string;              // 1–2000 chars
-  location: { address: string } // 3–300 chars
 }
+
+/** Every quest starts and ends here. */
+export const CAMPUS_ADDRESS = "3801 W Temple Ave, Pomona, CA 91768";
 
 export interface Location {
   name: string;
@@ -341,7 +341,7 @@ export async function createQuest(req: QuestRequest, signal?: AbortSignal): Prom
     res = await fetch(`${API_BASE_URL}/v1/quests`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: req.message.trim(), location: { address: req.location.address.trim() } }),
+      body: JSON.stringify({ message: req.message.trim() }),
       // The server retries the model internally, so allow up to ~2 minutes.
       signal: signal ?? AbortSignal.timeout(120_000),
     });
@@ -374,13 +374,13 @@ export async function createQuest(req: QuestRequest, signal?: AbortSignal): Prom
 ```ts
 try {
   setLoading(true);
-  const route = await createQuest({ message, location: { address } });
+  const route = await createQuest({ message });
   setRoute(route);
 } catch (e) {
   if (!(e instanceof ApiError)) return; // aborted
   switch (e.code) {
     case "VALIDATION_ERROR": {
-      // details is [{ path: "message" | "location.address" | ..., message }]
+      // details is [{ path: "message", message }]
       const fieldErrors = Array.isArray(e.details) ? e.details : [];
       setFieldErrors(Object.fromEntries(fieldErrors.map((d: any) => [d.path, d.message])));
       break;
@@ -413,14 +413,14 @@ try {
   leaves the page or edits and resubmits.
 - **Show error messages as-is.** `error.message` is written for users and never contains
   internal details. Show `requestId` small (for example "Ref: 3bc4…") so bugs can be traced.
-- **Keep the request in frontend state.** There is no GET route to fetch the message or
-  address later, and the response does not echo the message. Store what the user typed if
+- **Keep the request in frontend state.** There is no GET route to fetch the message
+  later, and the response does not echo it. Store what the user typed if
   you need to show "You asked for: …".
 
 ### 7. Rendering the route
 
 - **Order:** draw `startLocation` → each `quests[i]` in array order → `endLocation`. Start and
-  end are always the address the user typed.
+  end are always Cal Poly Pomona, so you can label them "Cal Poly Pomona" in the UI.
 - **Times** are plain `"HH:MM"` strings in the server's time zone (`America/Los_Angeles`
   by default). Show them as-is, or format them, for example `"13:05"` → `1:05 PM`. Don't
   parse them as dates in the browser's time zone.
