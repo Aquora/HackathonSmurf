@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from .types import Location, Preferences
+from .types import Location, Preferences, QuestTask
 
 
 @dataclass(frozen=True)
@@ -13,6 +13,8 @@ class RoutePlanInput:
     locations: list[Location]
     start_time: str  # local "HH:MM"
     timezone: str
+    # Randomly assigned task per location, keyed by location_key(name, address).
+    tasks: dict[str, QuestTask] = field(default_factory=dict)
     previous_issues: list[str] = field(default_factory=list)  # for a single repair request
 
 

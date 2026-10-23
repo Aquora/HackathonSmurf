@@ -74,7 +74,6 @@ def build_service(settings: Settings) -> Wiring:
         planner=planner,
         timezone=settings.QUEST_TIMEZONE,
         mock=settings.uses_mock,
-        default_address=settings.DEFAULT_START_ADDRESS,
     )
     return Wiring(service=service, close=close)
 

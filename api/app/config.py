@@ -5,7 +5,6 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import Field, HttpUrl, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
-from .domain.types import ADDRESS_MAX_LENGTH, DEFAULT_START_ADDRESS
 
 # Snowflake identifiers cannot be bound as parameters, so the procedure name is
 # restricted to plain (optionally qualified) identifiers to rule out SQL injection.
@@ -33,7 +32,6 @@ class Settings(BaseSettings):
     CORS_ORIGINS: Annotated[list[str], NoDecode] = []
     RATE_LIMIT_PER_MINUTE: int = Field(30, ge=1)
     QUEST_TIMEZONE: str = "America/Los_Angeles"
-    DEFAULT_START_ADDRESS: str = Field(DEFAULT_START_ADDRESS, min_length=3, max_length=ADDRESS_MAX_LENGTH)
     ALLOW_MOCK_IN_PRODUCTION: bool = False
 
     # cursor = any OpenAI-compatible endpoint; snowflake = Cortex AI_COMPLETE with SNOWFLAKE_AI_MODEL.

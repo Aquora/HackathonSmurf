@@ -5,21 +5,34 @@ import pytest
 from app.adapters.mock.mock_adapters import MOCK_LOCATIONS
 from app.domain.locations import parse_locations
 from app.domain.preferences import normalize_preferences
-from app.domain.types import Location
+from app.domain.locations import location_key
 from app.domain.route import RouteContext, prove_infeasible, validate_route
+from app.domain.tasks import DESCRIPTION_MAX_LENGTH, assign_tasks
+from app.domain.types import QUEST_TASKS, Location
 
 DEFAULTS = {"desiredTime": 90, "desiredBudget": 30, "locationPreference": "random", "travelMethod": "drive"}
 COFFEE = MOCK_LOCATIONS[0]  # closes 18:00
 MUSEUM = MOCK_LOCATIONS[5]  # closes 16:30
 ARCADE = MOCK_LOCATIONS[9]  # closes 23:59
 # Generous limits so tests of other rules are not tripped by time or budget.
-LIMITS = {"desired_time": 24 * 60, "desired_budget": 1000.0}
+# Every location gets the "inside photo" task so outputs are deterministic.
+LIMITS = {
+    "desired_time": 24 * 60,
+    "desired_budget": 1000.0,
+    "tasks": {location_key(l.name, l.address): QUEST_TASKS[0] for l in MOCK_LOCATIONS},
+}
 CTX = RouteContext(address="1 Home St", candidates=MOCK_LOCATIONS, start_time="10:00", **LIMITS)
 
 
-def quest(loc, arrival, departure, distance=1.234):
+def quest(loc, arrival, departure, distance=1.234, description="A fun stop."):
     location = loc.model_dump() if hasattr(loc, "model_dump") else loc
-    return {"location": location, "arrivalTime": arrival, "departureTime": departure, "travelDistance": distance}
+    return {
+        "location": location,
+        "arrivalTime": arrival,
+        "departureTime": departure,
+        "travelDistance": distance,
+        "description": description,
+    }
 
 
 class TestNormalizePreferences:
@@ -89,7 +102,16 @@ class TestValidateRoute:
         assert result.ok
         assert result.route.model_dump(exclude_none=True) == {
             "startLocation": {"address": "1 Home St"},
-            "quests": [{"location": COFFEE.model_dump(), "arrivalTime": "10:10", "departureTime": "10:40", "travelDistance": 1.23}],
+            "quests": [
+                {
+                    "location": COFFEE.model_dump(),
+                    "arrivalTime": "10:10",
+                    "departureTime": "10:40",
+                    "travelDistance": 1.23,
+                    "task": QUEST_TASKS[0].model_dump(),
+                    "description": "A fun stop.",
+                }
+            ],
             "endLocation": {"address": "1 Home St"},
             "totalTime": 60,
             "estimatedCost": 6.0,
@@ -218,3 +240,38 @@ class TestParseCosts:
         rows = [l.model_dump() for l in MOCK_LOCATIONS]
         rows[0]["estimatedCost"] = bad
         assert "estimatedCost must be a non-negative number" in parse_locations(rows).issues[0]
+
+
+class TestTasksAndDescriptions:
+    def test_assign_tasks_gives_every_location_one_of_the_three(self):
+        import random
+
+        tasks = assign_tasks(MOCK_LOCATIONS, random.Random(1))
+        assert set(tasks) == {location_key(l.name, l.address) for l in MOCK_LOCATIONS}
+        assert set(tasks.values()) <= set(QUEST_TASKS)
+        # Over many locations all three tasks show up (seeded, so stable).
+        many = [Location(name=f"P{i}", address=f"{i} St", closingTime="20:00") for i in range(60)]
+        assert set(assign_tasks(many, random.Random(1)).values()) == set(QUEST_TASKS)
+
+    def test_code_assigned_task_wins_over_the_models(self):
+        review = QUEST_TASKS[2]
+        c = ctx(tasks={location_key(COFFEE.name, COFFEE.address): review})
+        stop = quest(COFFEE, "10:10", "10:40") | {"task": QUEST_TASKS[1].model_dump()}  # model picked a different one
+        result = validate_route({"quests": [stop]}, c)
+        assert result.ok and result.route.quests[0].task == review
+
+    def test_unassigned_location_still_gets_a_valid_task(self):
+        result = validate_route({"quests": [quest(COFFEE, "10:10", "10:40")]}, ctx(tasks={}))
+        assert result.ok and result.route.quests[0].task in QUEST_TASKS
+
+    def test_description_is_cleaned(self):
+        result = validate_route({"quests": [quest(COFFEE, "10:10", "10:40", description="  Grab a\n coffee!  ")]}, CTX)
+        assert result.route.quests[0].description == "Grab a coffee!"
+
+    @pytest.mark.parametrize("bad", [None, "", "   ", 42, "x" * (DESCRIPTION_MAX_LENGTH + 1)])
+    def test_unusable_description_falls_back_without_failing(self, bad):
+        result = validate_route({"quests": [quest(COFFEE, "10:10", "10:40", description=bad)]}, CTX)
+        assert result.ok
+        assert result.route.quests[0].description == (
+            f"Stop by {COFFEE.name} at {COFFEE.address}. Your task: Take a picture of the inside."
+        )

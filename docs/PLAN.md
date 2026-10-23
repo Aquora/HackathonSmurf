@@ -74,6 +74,8 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
   mock adapters, route validation, and 55 passing tests. Verified locally and in Docker in
   mock mode only. Not verified: live model gateway, Snowflake procedure. Open: which
   endpoint serves "Cursor".
+- [x] 2026-10-23: Fixed every quest's start and end to Cal Poly Pomona; `POST /v1/quests`
+  now takes only `message`. 56 tests pass (mock mode).
 - [x] 2026-10-23: Budget and time enforced in code on the main backend: Snowflake returns
   `estimatedCost`, code sums stop costs and rejects over-budget/over-time routes, and
   provable infeasibility (all closed, nothing affordable) returns `NO_FEASIBLE_ROUTE`
@@ -115,3 +117,6 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
 - [x] Model step runs on Snowflake Cortex (AI_PROVIDER=snowflake, llama3.3-70b) on 2026-10-23,
   because the team's Cursor key is on a free plan (Cursor API requires Pro). Full quest verified
   end to end with no mocks (~24 s); 78 API tests pass.
+- [x] 2026-10-23: Added a random task (inside photo, building photo, review screenshot) and a
+  model-written description to every quest stop; prompt version 2026-10-23.2. 86 tests pass
+  (mock mode). Not done: task uploads/verification; not yet run against a live model.
