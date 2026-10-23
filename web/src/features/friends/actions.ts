@@ -4,7 +4,14 @@ import { revalidatePath } from "next/cache";
 import { MongoServerError, ObjectId } from "mongodb";
 import { z } from "zod";
 import { auth } from "@/auth";
-import { findPlayers, getFriendshipsCollection, getPlayerSummary, pairKey, type PlayerSummary } from "@/lib/friends";
+import {
+  findPlayers,
+  getFriendshipsCollection,
+  getPlayerSummary,
+  pairKey,
+  removeFriendship,
+  type PlayerSummary,
+} from "@/lib/friends";
 import { consume } from "@/lib/rate-limit";
 
 export interface AddFriendState {
@@ -57,7 +64,7 @@ export async function sendFriendRequest(_previous: AddFriendState, formData: For
   const key = pairKey(userId, targetObjectId);
   const existing = await friendships.findOne({ pairKey: key });
   const done = (message: string): AddFriendState => {
-    revalidatePath("/friends");
+    revalidatePath("/friends", "layout");
     return { message, sentAt: Date.now() };
   };
 
@@ -101,7 +108,7 @@ export async function respondToFriendRequest(formData: FormData) {
   } else {
     await friendships.deleteOne(filter);
   }
-  revalidatePath("/friends");
+  revalidatePath("/friends", "layout");
 }
 
 export async function cancelFriendRequest(formData: FormData) {
@@ -112,5 +119,16 @@ export async function cancelFriendRequest(formData: FormData) {
   const friendships = await getFriendshipsCollection();
   // Only the sender of a pending request can cancel it.
   await friendships.deleteOne({ _id: new ObjectId(requestId), requesterId: userId, status: "pending" });
-  revalidatePath("/friends");
+  revalidatePath("/friends", "layout");
+}
+
+export async function removeFriend(formData: FormData) {
+  const userId = await currentUserId();
+  const friendId = field(formData, "friendId");
+  if (!userId || !ObjectId.isValid(friendId)) return;
+
+  // Only an accepted friendship that includes the signed-in player is removed.
+  await removeFriendship(userId, new ObjectId(friendId));
+  revalidatePath("/friends", "layout");
+  revalidatePath("/profile");
 }

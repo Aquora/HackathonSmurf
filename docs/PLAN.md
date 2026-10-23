@@ -145,3 +145,7 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
   Verified locally in mock mode: 89 API tests, 46 web unit tests, lint, typecheck, and 24/25 Playwright
   tests including the new full journey (the Google OAuth test needs real Google credentials). Not
   re-verified with live Snowflake/Cortex; not deployed.
+- [x] 2026-10-23: Friend player cards (branch `friend-profiles`): `/friends/[userId]`
+  shows a friend's Figma player card with stats and badges (friends only), friend count on
+  cards, and remove friend. Friend cards use the same quest-based progress as `/profile`.
+  Unit and Playwright tests pass against a disposable in-memory MongoDB; not deployed.
