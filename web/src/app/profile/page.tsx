@@ -17,7 +17,7 @@ export default async function ProfilePage() {
   const profile = await getPlayerProfile(session.user.id);
   if (!profile) redirect("/sign-in?callbackUrl=/profile");
 
-  // Badges and stats from the Figma frame, computed from the player's simulated check-ins.
+  // Stats and badges are computed from the player's simulated check-ins.
   const userId = new ObjectId(session.user.id);
   const [progress, quests] = await Promise.all([getPlayerProgress(userId), listQuests(userId)]);
 
