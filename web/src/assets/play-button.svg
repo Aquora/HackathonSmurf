@@ -1,0 +1,21 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="140.93" height="75.4986" viewBox="0 0 140.93 75.4986" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="Sign Up Button" filter="url(#filter0_d_0_4)">
+<use xlink:href="#stroke0_0_4" fill="#E84A4A"/>
+<mask id="stroke1_0_4" fill="white">
+<use xlink:href="#stroke0_0_4"/>
+</mask>
+<path d="M9.71931 0H131.211V5.12717H136.07V10.2543H140.93V60.2443H136.07V65.3714H131.211V70.4986H9.71931V65.3714H4.85966V60.2443H0V10.2543H4.85966V5.12717H9.71931V0Z" stroke-width="6" stroke="#923838" mask="url(#stroke1_0_4)"/>
+</g>
+<defs>
+<filter id="filter0_d_0_4" x="0" y="0" width="140.93" height="75.4986" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="5"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0.397818 0 0 0 0 0.147478 0 0 0 0 0.147478 0 0 0 1 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_4"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_4" result="shape"/>
+</filter>
+<path id="stroke0_0_4" d="M9.71931 0H131.211V5.12717H136.07V10.2543H140.93V60.2443H136.07V65.3714H131.211V70.4986H9.71931V65.3714H4.85966V60.2443H0V10.2543H4.85966V5.12717H9.71931V0Z"/>
+</defs>
+</svg>

@@ -1,0 +1,118 @@
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: var(--header-height);
+  background: var(--color-header);
+}
+
+.app-header__inner {
+  position: relative;
+  max-width: var(--layout-max-width);
+  height: 100%;
+  margin: 0 auto;
+}
+
+.app-header__logo {
+  position: absolute;
+  left: 9px;
+  top: 57.5px;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  line-height: normal;
+  color: var(--color-white);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.app-header__logo-local {
+  font-size: 54px;
+}
+
+.app-header__logo-quest {
+  font-size: 44px;
+  color: var(--color-gold);
+}
+
+/* 60x31 hit box; the SVG overhangs it by 4px each side and 8px below (drop shadow). */
+.app-header__menu {
+  position: absolute;
+  right: 8px;
+  top: 43px;
+  width: 60px;
+  height: 31px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.app-header__menu img {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.app-header__menu:active img {
+  transform: translateY(2px);
+}
+
+/* ---------- Menu dropdown (profile frame, node 2025:3) ---------- */
+
+/* 184px wide, right-aligned with the menu button and 8px below it. */
+.header-menu__dropdown {
+  position: absolute;
+  top: 82px;
+  right: 8px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 184px;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  background: var(--color-input-bg);
+  border: 2px solid var(--color-input-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 0 0 var(--color-shadow-deep);
+}
+
+.header-menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--pixel-light);
+  border: 2px solid var(--color-input-border);
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--color-ink);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.header-menu__item:hover,
+.header-menu__item:focus-visible {
+  background: var(--color-gold);
+}
+
+.header-menu__item:focus-visible {
+  outline: 3px solid var(--color-header);
+  outline-offset: 1px;
+}
+
+.header-menu__item--soon {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.header-menu__item--soon:hover {
+  background: var(--pixel-light);
+}

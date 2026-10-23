@@ -1,0 +1,51 @@
+.auth-banner {
+  background: var(--color-hero);
+}
+
+.auth-banner__inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 18px 32px 20px;
+}
+
+.auth-banner__title {
+  display: flex;
+  flex-direction: column;
+  max-width: 320px;
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 56px;
+  font-weight: normal;
+  line-height: 48px;
+  color: var(--color-white);
+  text-shadow: 0 3px 0 var(--color-input-border);
+}
+
+.auth-banner__highlight {
+  color: var(--color-gold-bright);
+}
+
+.auth-banner__subtitle {
+  max-width: 340px;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 20px;
+  line-height: 22px;
+  color: var(--color-white);
+}
+
+.auth-banner__coin {
+  position: absolute;
+  top: 46px;
+  right: 44px;
+}
+
+.auth-banner__ground {
+  height: 4px;
+  background: var(--color-gold);
+  border: 1px solid var(--color-input-border);
+}
