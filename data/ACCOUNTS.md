@@ -17,7 +17,12 @@ adapter defaults.
 | `accounts` | Auth.js adapter | Standard OAuth account link (`provider`, `providerAccountId`, `userId`, tokens) | `provider_account_unique` (unique), `account_user` |
 | `sessions` | Auth.js adapter | `sessionToken`, `userId`, `expires` | `session_token_unique` (unique) |
 | `verification_tokens` | Auth.js adapter | `identifier`, `token`, `expires` | `verification_token_unique` (unique) |
+| `friendships` | Friends page server actions (`web/src/features/friends/actions.ts`) | `requesterId`, `recipientId`, `pairKey` (both ids sorted and joined), `status` (`pending` or `accepted`), `createdAt`, `acceptedAt` | `pair_unique` (unique), `recipient_status`, `requester_status` (created on first use, in `web/src/lib/friends.ts`) |
 | `avatars` | Profile picture upload (`web/src/features/profile/actions.ts`) | `_id` (= user `_id`), `data` (binary, ≤ 2 MB), `contentType` (`image/png`, `image/jpeg`, or `image/webp`, detected from the file bytes), `size`, `updatedAt` | `_id` only |
+
+A pair of players has at most one `friendships` document. Declining or cancelling a request
+deletes it; sending a request to someone who already sent you one accepts theirs. Players are
+found by exact username or exact name (case-insensitive), never by partial match.
 
 `users.avatarUpdatedAt` is set while an uploaded picture exists. The profile shows the
 uploaded picture first, then the Google account photo (`users.image`), then the default
@@ -45,4 +50,4 @@ implemented).
 ## Retention and deletion
 
 Not yet decided (see PROJECT.md "Decisions for the owner"). Deleting a user should
-remove their `users` document and matching `accounts` and `avatars` documents.
+remove their `users` document and matching `accounts`, `avatars`, and `friendships` documents.

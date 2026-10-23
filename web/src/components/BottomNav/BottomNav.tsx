@@ -1,6 +1,7 @@
 import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
 import exploreInactive from "@/assets/nav-explore-inactive.svg";
+import friendsActive from "@/assets/nav-friends-active.svg";
 import friendsInactive from "@/assets/nav-friends-inactive.svg";
 import profileActive from "@/assets/nav-profile-active.svg";
 import profileInactive from "@/assets/nav-profile-inactive.svg";
@@ -21,11 +22,11 @@ const ITEMS: NavItem[] = [
   // Explore is reserved for a future map view.
   { label: "Explore", href: "/explore", icons: { inactive: exploreInactive }, available: false },
   { label: "Quests", href: "/quests", icons: { active: questsActive, inactive: questsInactive }, available: true },
-  { label: "Friends", href: "/friends", icons: { inactive: friendsInactive }, available: false },
+  { label: "Friends", href: "/friends", icons: { active: friendsActive, inactive: friendsInactive }, available: true },
   { label: "Profile", href: "/profile", icons: { active: profileActive, inactive: profileInactive }, available: true },
 ];
 
-/** App tab bar from the "LocalQuest quests" and "player profile" frames. */
+/** App tab bar from the "LocalQuest quests", "friends", and "player profile" frames. */
 export function BottomNav({ active }: { active: string }) {
   return (
     <nav className="bottom-nav" aria-label="Main">

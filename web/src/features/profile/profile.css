@@ -164,16 +164,6 @@
   gap: 8px;
 }
 
-.small-button--primary {
-  background: var(--color-hero);
-  color: var(--color-white);
-}
-
-.small-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
 .profile-editor__remove {
   padding: 0;
   border: 0;

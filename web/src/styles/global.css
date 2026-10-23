@@ -59,3 +59,13 @@ button {
   translate: 0 2px;
   box-shadow: 0 1px 0 0 var(--color-input-shadow);
 }
+
+.small-button--primary {
+  background: var(--color-hero);
+  color: var(--color-white);
+}
+
+.small-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

@@ -39,6 +39,7 @@ Current phase: API quest-generation slice implemented locally (mock-verified); l
   - [x] Profile page with picture upload (upload > Google photo > default avatar);
     stats, badges, and quest log are empty states until progress is tracked.
   - [x] Quest board (`/quests`) as the signed-in home page, with empty states; Explore page removed.
+  - [x] Friends page with friend requests (send by username or name, accept/decline/cancel).
   - [ ] Quest storage and data for the quest board, profile stats, badges, and quest log.
 - [ ] Backend/AI worker: normalization, AI candidate selection/order, grounding, verification, persistence in api/.
 - [ ] Snowflake worker: catalog sourcing/provenance, ranked top-10 queries, event views

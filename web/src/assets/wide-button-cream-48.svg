@@ -1,0 +1,21 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="376" height="52" viewBox="0 0 376 52" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="Pixel button" filter="url(#filter0_d_0_14)">
+<use xlink:href="#stroke0_0_14" fill="#FFFCED"/>
+<mask id="stroke1_0_14" fill="white">
+<use xlink:href="#stroke0_0_14"/>
+</mask>
+<path d="M25.931 0H350.069V3.49091H363.034V6.98182H376V41.0182H363.034V44.5091H350.069V48H25.931V44.5091H12.9655V41.0182H0V6.98182H12.9655V3.49091H25.931V0Z" stroke-width="6" stroke="#923838" mask="url(#stroke1_0_14)"/>
+</g>
+<defs>
+<filter id="filter0_d_0_14" x="0" y="0" width="376" height="52" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="4"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0.396078 0 0 0 0 0.14902 0 0 0 0 0.14902 0 0 0 1 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_14"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_14" result="shape"/>
+</filter>
+<path id="stroke0_0_14" d="M25.931 0H350.069V3.49091H363.034V6.98182H376V41.0182H363.034V44.5091H350.069V48H25.931V44.5091H12.9655V41.0182H0V6.98182H12.9655V3.49091H25.931V0Z"/>
+</defs>
+</svg>

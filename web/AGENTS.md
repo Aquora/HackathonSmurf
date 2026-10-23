@@ -22,6 +22,10 @@ For teammates and their AI assistants. Scope: `web/`.
   protected) from the LocalQuest Figma file (`dNPMN12L6f9V9tFchiIdeH`). The quest
   board shows empty states until quests are stored. The Explore page was removed;
   `/explore` redirects to `/quests` and the Explore tab is a disabled "coming soon" tab.
+- Friends (`/friends`, protected): Figma "LocalQuest friends" frame. "+ Add friend" opens the
+  Figma popup; requests are sent by exact username (optionally "@…") or exact name, with a
+  pick list when several players share a name. Incoming requests (Accept/Decline) and sent
+  requests (Cancel) are extra sections not in the design. Data: `src/lib/friends.ts`.
 - Player settings (`/settings`, protected): profile picture upload/remove and Sign out.
   Opened from the header menu and the profile page's "Edit profile" link. No Figma frame
   exists for it; it reuses the sign-up banner and panel styles. Sign out also appears on
