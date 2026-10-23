@@ -79,3 +79,29 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
   provable infeasibility (all closed, nothing affordable) returns `NO_FEASIBLE_ROUTE`
   with `proven: true` before calling the model. 73 tests pass; mock server smoke-checked.
   Earlier standalone backend preserved as tag `kian-backend-v1`.
+- [x] Created six main work areas with AGENTS.md contributor guides only; no nested
+  source folders, dependencies, application code, or executable tests were added.
+
+- [x] Copied eight existing skills and downloaded five verified official candidates
+  into .skillls/ with source/checksum records. No global installation, dependency
+  setup, or skill workflow execution was performed.
+
+- [x] Repurposed data/ guidance for account-storage definitions; Snowflake supplies
+  candidate JSON directly to the backend. No credentials, database, or login code added.
+
+- [x] Drafted the Snowflake retrieval design in snowflake/PLAN.md on 2026-10-23;
+  proposed only. No Snowflake resources, migrations, or code were created.
+- [x] Implemented Snowflake retrieval in snowflake/ on 2026-10-23: migrations, Python
+  UDF/procedure, ingest scripts, and a key-pair connection runner (scripts/lq.py).
+  Local unit tests and synthetic examples removed at the owner's request. Real OSM
+  data fetched for Pomona + Claremont (239/244 with parseable hours). Not yet
+  deployed to Snowflake; curated places not yet collected.
+- [x] Deployed Snowflake retrieval to LOCAL_QUEST_DEV (trial, AWS_US_EAST_2) on 2026-10-23
+  with real OSM data for Pomona + Claremont (239 searchable places). Verified live calls,
+  backend-role grant, and invalid-input error. Matching is keyword-based because trial
+  accounts block Cortex AI functions.
+- [x] Moved active Snowflake account to a 120-day trial that allows Cortex (2026-10-23);
+  deployed hybrid keyword + AI_EMBED matching (sf_hybrid_v1) and verified live calls.
+- [x] Simplified Snowflake to one dataset (Pomona OpenStreetMap, 95 places with hours) on
+  2026-10-23; removed Overture, curated overlay, analytics, multi-region, and H3. Hybrid
+  keyword + Cortex top-1 fallback matching verified with live calls.
