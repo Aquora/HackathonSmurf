@@ -393,6 +393,20 @@ producer and consumer work together; a chatbot's claim of completion is not evid
 
 ## 10. Persistence, sourcing, and data lifecycle
 
+`data/` contains account-storage definitions/migrations and non-secret setup notes,
+not actual login records or a local Snowflake catalog. The backend receives
+CandidateSet JSON directly from its Snowflake query adapter and processes it in
+memory. No intermediate JSON file or local place dataset is required.
+
+Account records belong in the selected database/authentication service. Backend
+login/session handlers verify identity and enforce ownership. Choose the provider,
+session transport, and login request/response contracts before implementation;
+no new login endpoint is defined by this change. Application-managed passwords
+must use secure password hashes in the database, never plaintext. Neither hashes,
+passwords, live session tokens, nor account dumps belong in repository files.
+Service credentials are server configuration/secret-manager values, not user records.
+
+
 The shared record shapes above define exchanged data; storage schemas and migrations
 are not implemented. Keep operational storage distinct from warehouse analytics.
 
@@ -416,12 +430,14 @@ establish partnerships or authorize real redemptions.
 
 ### Initial dataset and provenance
 
-Curate 10–15 places in one walkable neighborhood. No real locations have been
+Maintain 10–15 approved places in Snowflake for one walkable neighborhood. No real locations have been
 selected or verified yet. Catalog descriptions, facts, hours, prices, and coordinates
 need documented sources and verification times. Record permission/license and
 attribution for every source; do not assume scraped descriptions or map-provider
 data can be redistributed. Unknown prices/hours remain unknown or exclude a place
-from strict planning. Keep demo fixtures separate from real data.
+from strict planning. The Snowflake owner maintains catalog ingestion and provenance;
+no local curated dataset is required. Shared synthetic messages live in
+contracts/examples/ and synthetic test inputs in test fixtures, separate from real data.
 
 ### Privacy and public-release decisions
 

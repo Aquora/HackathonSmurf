@@ -21,14 +21,20 @@ remain draft and no application implementation exists.
 - [ ] Resolve draft contract gaps, including session transport, query shapes,
   limits, defaults metadata, CandidateSet/QuestProposal/Quest schemas, and event
   delivery; freeze the first agreed contract revision.
-- [ ] Create canonical API contracts and synthetic fixtures.
+- [ ] Create canonical API contracts and synthetic fixtures under contracts/examples/
+  and relevant tests; do not require local place data in data/.
+- [ ] Choose account storage/authentication and coordinate definitions in data/
+  with backend handlers; do not store live credentials or account records in files.
 - [ ] Scaffold frontend/backend; verify install/build/test commands in README.
 - [ ] Demonstrate a form calling the backend and rendering a labeled fixture quest.
 
 ## 3. Parallel implementation after contracts stabilize
 - [ ] Frontend worker: form/default display, route map/cards, passport, dashboard UI in web/.
 - [ ] Backend/AI worker: normalization, AI candidate selection/order, grounding, verification, persistence in api/.
-- [ ] Data worker: curated catalog, ranked top-10 parameterized queries, event views in snowflake/.
+- [ ] Snowflake worker: catalog sourcing/provenance, ranked top-10 queries, event views
+  in snowflake/; supply candidate JSON directly to the backend.
+- [ ] Account-storage owner (may be backend teammate): definitions/migrations and
+  non-secret setup notes in data/; provider/database choice remains open.
 - [ ] Lead: shared contracts, configuration, integration, documentation, and review.
 Use separate worktrees or disjoint file ownership; do not allocate agents needlessly.
 
@@ -71,3 +77,6 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
 - [x] Copied eight existing skills and downloaded five verified official candidates
   into .skillls/ with source/checksum records. No global installation, dependency
   setup, or skill workflow execution was performed.
+
+- [x] Repurposed data/ guidance for account-storage definitions; Snowflake supplies
+  candidate JSON directly to the backend. No credentials, database, or login code added.

@@ -50,7 +50,8 @@ architecture after bootstrap. Update affected documents when decisions change.
 - `api/`: backend, business logic, integrations, and its local tests.
 - `contracts/`: authoritative API contracts and shared examples.
 - `snowflake/`: Snowflake schema changes and queries, when selected.
-- `data/`: small redistributable fixtures, with sources and license information.
+- `data/`: account-storage definitions/migrations and non-secret setup notes; never
+  actual credentials or user records. Snowflake owns the place catalog.
 - `docs/`: architecture, contracts, plan, testing, and deployment/demo guidance.
 - `tests/e2e/`: complete user-journey checks, when applicable.
 

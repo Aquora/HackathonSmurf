@@ -20,7 +20,7 @@ is agreed. The integration lead coordinates edits with every affected consumer.
   frontend Quest responses, errors, check-ins, and analytics events consistently.
 - Resolve open fields/settings with owners instead of inventing private alternatives.
 - Use one authoritative definition per model and derive consumer types where practical.
-- Keep example IDs, money, durations, and fact references consistent with data fixtures.
+- Keep example IDs, money, durations, and fact references consistent with shared synthetic test fixtures; data/ is for account-storage definitions.
 - Coordinate breaking field, unit, enum, or behavior changes with consumers.
 - Validate schemas and examples and check actual producer/consumer compatibility.
 - This folder currently contains guidance only; no schema has been frozen or generated.

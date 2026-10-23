@@ -13,9 +13,13 @@ when selecting skills; read each selected skill's actual instructions.
 ## Responsibilities and boundaries
 
 Own warehouse schema changes, ranked candidate queries, and analytics views.
-Coordinate curated records with the data owner and query outputs with the API owner.
+Own catalog sourcing/ingestion and provenance; coordinate query outputs with the API owner.
 The backend connection adapter belongs to api/ unless explicitly reassigned.
 
+- Supply candidate JSON directly to the backend through the query adapter; no
+  local place dataset or intermediate data/ JSON file is required.
+- Maintain source, attribution, publication rights, and verification metadata with
+  the Snowflake catalog; document ingestion procedures in this work area when built.
 - Use parameterized queries and versioned, reviewable schema changes.
 - Receive effective location/time, budget, duration, and preferences from the API.
 - Return up to 10 distinct ranked approved locations with planning parameters,

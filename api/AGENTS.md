@@ -17,9 +17,14 @@ persistence, access control, and repeat-safe check-ins. AI is initially part of 
 component; assign disjoint internal paths if separate teammates work on it.
 
 - Choose backend technology; coordinate storage, auth, providers, and hosting.
+- Own login/session handlers and account-provider adapters; coordinate account
+  schema definitions with data/. Actual accounts belong in the chosen database/auth
+  service, never repository files. No auth provider is selected by this guidance.
 - Follow the architecture's generation flow and the shared contract's input rules.
 - Normalize omitted inputs once: 90 minutes, $30, no preference. Currency and
   missing location/time behavior remain unresolved; preserve valid overrides.
+- Consume Snowflake candidate JSON directly; validate it in memory without requiring
+  local place files or saving the response to data/.
 - Obtain up to 10 Snowflake candidates; AI selects/orders three candidate IDs.
 - Validate AI output and recompute route feasibility from catalog/provider data.
   Never trust model-generated cost/time totals or treat model failure as infeasibility.

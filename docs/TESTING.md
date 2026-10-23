@@ -28,6 +28,10 @@ See TEAM-CONTRACT.md for the proposed contract freeze and acceptance gate.
 - Request validation rejects malformed coordinates, negative values, and excessive inputs.
 - Duplicate/retried check-ins yield one stamp and one logical analytics event.
 - Another session cannot read a quest or mutate its check-ins.
+- Once authentication is implemented, verify session validation, ownership binding,
+  and that responses/logs/repository fixtures contain no password hashes or tokens.
+- Generation consumes validated Snowflake JSON without relying on a local catalog
+  file or writing candidate responses to data/.
 - Business metrics respect owner access and separate simulated activity.
 
 ## AI evaluation fixtures

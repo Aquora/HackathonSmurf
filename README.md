@@ -44,8 +44,13 @@ assistance to route planning; code still verifies the result.
 Each work area currently contains only its contributor guide:
 [frontend](web/AGENTS.md), [backend/AI](api/AGENTS.md),
 [Snowflake](snowflake/AGENTS.md), [shared contracts](contracts/AGENTS.md),
-[data](data/AGENTS.md), and [cross-component tests](tests/AGENTS.md).
+[account-storage definitions](data/AGENTS.md), and [cross-component tests](tests/AGENTS.md).
 Developers create internal structure when implementing their assigned components.
+
+Snowflake supplies candidate JSON directly to the backend; no local place dataset
+or intermediate JSON file in `data/` is required. Actual user accounts live in a
+chosen database/authentication service. Service credentials stay in server-side
+secret configuration. `data/` contains definitions and guidance, not live records.
 
 ## Development
 Commands, dependency versions, and environment configuration will be recorded

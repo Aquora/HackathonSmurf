@@ -9,6 +9,8 @@ as the demo is built. This checklist covers the hackathon demo only.
 - [ ] Confirm hosting and service accounts. Vercel (web) and Render (API) are
   earlier suggestions, not selected providers; coordinate hosting with the chosen
   component technologies in `ARCHITECTURE.md`: [TO FILL]
+- [ ] Select account database/auth service, configure backend access separately
+  from Snowflake access, and keep real records out of data/.
 - [ ] Record required environment variable **names and purposes** in example
   configuration; store values in the selected providers' secret settings.
 - [ ] Verify input-default configuration (90 minutes, $30, no preference), selected
