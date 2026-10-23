@@ -1,7 +1,6 @@
 # Local Quest implementation plan
 
-Current phase: owner-confirmed generation workflow documented; contract details
-remain draft and no application implementation exists.
+Current phase: API quest-generation slice implemented locally (mock-verified); live Cursor/Snowflake integration not yet verified.
 
 ## 1. Confirm scope and dependencies
 - [ ] Select neighborhood, validate event rules, and confirm the first demo scope.
@@ -70,13 +69,8 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
 - [ ] Owner has reviewed remaining contract/configuration decisions.
 - [x] Restored a separate skills catalog for team selection; documentation now has
   nine files. No skill installation or mandatory selection was performed.
-
-- [x] Created six main work areas with AGENTS.md contributor guides only; no nested
-  source folders, dependencies, application code, or executable tests were added.
-
-- [x] Copied eight existing skills and downloaded five verified official candidates
-  into .skillls/ with source/checksum records. No global installation, dependency
-  setup, or skill workflow execution was performed.
-
-- [x] Repurposed data/ guidance for account-storage definitions; Snowflake supplies
-  candidate JSON directly to the backend. No credentials, database, or login code added.
+- [x] 2026-10-23: Implemented `POST /v1/quests` in `api/` (Python/FastAPI, replacing a
+  same-day TypeScript draft) with Cursor-style model adapter, Snowflake procedure adapter,
+  mock adapters, route validation, and 55 passing tests. Verified locally and in Docker in
+  mock mode only. Not verified: live model gateway, Snowflake procedure. Open: which
+  endpoint serves "Cursor".
