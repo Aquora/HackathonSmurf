@@ -11,16 +11,16 @@ from ...domain.ports import RoutePlanInput
 from ...domain.types import Location
 
 MOCK_LOCATIONS: list[Location] = [
-    Location(name="Demo Bean Coffee", address="101 Example Ave, Demo City, CA 90000", closingTime="18:00"),
-    Location(name="Demo Gallery of Art", address="202 Sample St, Demo City, CA 90000", closingTime="17:00"),
-    Location(name="Demo Botanical Garden", address="303 Placeholder Rd, Demo City, CA 90000", closingTime="19:00"),
-    Location(name="Demo Used Bookshop", address="404 Fixture Ln, Demo City, CA 90000", closingTime="20:00"),
-    Location(name="Demo Taco Stand", address="505 Mock Blvd, Demo City, CA 90000", closingTime="22:00"),
-    Location(name="Demo History Museum", address="606 Test Way, Demo City, CA 90000", closingTime="16:30"),
-    Location(name="Demo Record Store", address="707 Stub Ct, Demo City, CA 90000", closingTime="21:00"),
-    Location(name="Demo Lookout Park", address="808 Dummy Dr, Demo City, CA 90000", closingTime="23:00"),
-    Location(name="Demo Ice Cream Parlor", address="909 Sample St, Demo City, CA 90000", closingTime="22:30"),
-    Location(name="Demo Arcade", address="1010 Example Ave, Demo City, CA 90000", closingTime="23:59"),
+    Location(name="Demo Bean Coffee", address="101 Example Ave, Demo City, CA 90000", closingTime="18:00", estimatedCost=6),
+    Location(name="Demo Gallery of Art", address="202 Sample St, Demo City, CA 90000", closingTime="17:00", estimatedCost=0),
+    Location(name="Demo Botanical Garden", address="303 Placeholder Rd, Demo City, CA 90000", closingTime="19:00", estimatedCost=10),
+    Location(name="Demo Used Bookshop", address="404 Fixture Ln, Demo City, CA 90000", closingTime="20:00", estimatedCost=15),
+    Location(name="Demo Taco Stand", address="505 Mock Blvd, Demo City, CA 90000", closingTime="22:00", estimatedCost=12),
+    Location(name="Demo History Museum", address="606 Test Way, Demo City, CA 90000", closingTime="16:30", estimatedCost=18),
+    Location(name="Demo Record Store", address="707 Stub Ct, Demo City, CA 90000", closingTime="21:00", estimatedCost=20),
+    Location(name="Demo Lookout Park", address="808 Dummy Dr, Demo City, CA 90000", closingTime="23:00", estimatedCost=0),
+    Location(name="Demo Ice Cream Parlor", address="909 Sample St, Demo City, CA 90000", closingTime="22:30", estimatedCost=7),
+    Location(name="Demo Arcade", address="1010 Example Ave, Demo City, CA 90000", closingTime="23:59", estimatedCost=25),
 ]
 
 _KEYWORDS = ["coffee", "art", "garden", "park", "book", "food", "taco", "museum", "history", "music", "record", "ice cream", "arcade", "game"]  # fmt: skip
@@ -58,7 +58,7 @@ def _hhmm(m: int) -> str:
 
 
 class MockRoutePlanner:
-    """Greedy planner: visits locations still open, while time and a three-stop cap allow."""
+    """Greedy planner: visits locations still open and affordable, while time and a three-stop cap allow."""
 
     async def plan_route(self, request: RoutePlanInput) -> Any:
         speed = _SPEED_MPH.get(request.preferences.travelMethod, _SPEED_MPH["drive"])
@@ -66,6 +66,7 @@ class MockRoutePlanner:
         start = clock_minutes(request.start_time)
         start = 9 * 60 if start is None else start
         now = start
+        spent = 0.0
         quests: list[dict[str, Any]] = []
 
         for loc in request.locations:
@@ -78,12 +79,15 @@ class MockRoutePlanner:
             closing = clock_minutes(loc.closingTime)
             if closing is not None and departure > closing:
                 continue
+            if loc.estimatedCost is None or spent + loc.estimatedCost > request.preferences.desiredBudget:
+                continue
             if departure + leg - start > request.preferences.desiredTime:
                 break
             quests.append(
                 {"location": loc.model_dump(), "arrivalTime": _hhmm(arrival), "departureTime": _hhmm(departure), "travelDistance": _LEG_MILES}
             )
             now = departure
+            spent += loc.estimatedCost
 
         return {
             "startLocation": {"address": request.address},
@@ -91,5 +95,5 @@ class MockRoutePlanner:
             "endLocation": {"address": request.address},
             "totalTime": now + leg - start,
             "totalDistance": (len(quests) + 1) * _LEG_MILES,
-            "estimatedCost": min(request.preferences.desiredBudget, len(quests) * 8),
+            "estimatedCost": spent,
         }

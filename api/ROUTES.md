@@ -75,7 +75,8 @@ travel method. Anything it can't find uses a default:
       "location": {
         "name": "Demo Bean Coffee",
         "address": "101 Example Ave, Demo City, CA 90000",
-        "closingTime": "18:00"
+        "closingTime": "18:00",
+        "estimatedCost": 6.0
       },
       "arrivalTime": "10:20",
       "departureTime": "10:40",
@@ -85,7 +86,8 @@ travel method. Anything it can't find uses a default:
       "location": {
         "name": "Demo Gallery of Art",
         "address": "202 Sample St, Demo City, CA 90000",
-        "closingTime": "17:00"
+        "closingTime": "17:00",
+        "estimatedCost": 0.0
       },
       "arrivalTime": "11:00",
       "departureTime": "11:20",
@@ -95,7 +97,7 @@ travel method. Anything it can't find uses a default:
   "endLocation": { "address": "123 Main St, Pomona, CA" },
   "totalTime": 100,
   "totalDistance": 3.0,
-  "estimatedCost": 16.0,
+  "estimatedCost": 6.0,
   "mock": true
 }
 ```
@@ -107,13 +109,14 @@ travel method. Anything it can't find uses a default:
 | `quests[].location.name` | string | yes | Place name from Snowflake. |
 | `quests[].location.address` | string | yes | Place address from Snowflake. |
 | `quests[].location.closingTime` | string | yes | Local closing time, usually `"HH:MM"` (24-hour). |
+| `quests[].location.estimatedCost` | number | yes | Typical spend at this place in US dollars, from the catalog. |
 | `quests[].arrivalTime` | string | yes | Local `"HH:MM"` (24-hour). |
 | `quests[].departureTime` | string | yes | Local `"HH:MM"` (24-hour), before the place closes. |
 | `quests[].travelDistance` | number | yes | Miles from the previous point to this stop. |
 | `endLocation.address` | string | yes | Always the request's address. |
-| `totalTime` | integer | no | Estimated minutes for the whole trip, including the return. |
+| `totalTime` | integer | no | Model's estimate of minutes for the whole trip, including the return; checked to be within `desiredTime`. |
 | `totalDistance` | number | no | Estimated miles, including the return. |
-| `estimatedCost` | number | no | Estimated spend in US dollars. |
+| `estimatedCost` | number | yes | Sum of the stops' catalog `estimatedCost`, in US dollars. Computed by the server. |
 | `mock` | `true` | no | Only present when fake demo data was used. Show a "demo" label if it is. |
 
 Things the server guarantees (it checks them, not just the model):
@@ -121,9 +124,13 @@ Things the server guarantees (it checks them, not just the model):
 - Every stop is one of the 10 places Snowflake returned. There are no invented places and no repeats.
 - Times are in order, and you leave each stop before it closes.
 - The quest starts at the server's current local time (`QUEST_TIMEZONE`, default `America/Los_Angeles`).
+- **Budget:** every stop has a known catalog cost, and `estimatedCost` (their sum, computed by the
+  server, not the model) is at most the budget.
+- **Time:** the last stop ends within `desiredTime` minutes of the start, and `totalTime`, if
+  present, is within `desiredTime`.
 
-Time and budget are targets the model tries to meet. They are not hard limits, so
-compare `totalTime` and `estimatedCost` with what the user asked for if that matters to you.
+Not yet verified by code: travel times and `travelDistance`/`totalDistance` come from the model
+(there is no routing provider or coordinates yet), and places have no opening time, only a closing time.
 
 ### Errors
 
@@ -146,7 +153,7 @@ Every error uses the same shape:
 |---|---|---|---|
 | `400` | `VALIDATION_ERROR` | Missing/invalid fields, or malformed JSON | No, fix the request |
 | `413` | `VALIDATION_ERROR` | Body larger than 16 KB | No |
-| `422` | `NO_FEASIBLE_ROUTE` | No stop fits the time, budget and opening hours | Ask the user to loosen limits |
+| `422` | `NO_FEASIBLE_ROUTE` | No stop fits the time, budget and opening hours (see `details.proven`) | Ask the user to loosen limits |
 | `429` | `RATE_LIMITED` | Too many requests from this IP (default 30/min) | After `retry-after` seconds |
 | `502` | `UPSTREAM_INVALID_RESPONSE` | Snowflake or the model returned bad data | Yes, once |
 | `503` | `UPSTREAM_UNAVAILABLE` | Snowflake or the model is unreachable | Yes, with backoff |
@@ -183,16 +190,25 @@ Examples:
 { "error": { "code": "VALIDATION_ERROR", "message": "Request body is too large.", "requestId": null } }
 ```
 
-**422** no feasible route: `details.preferences` shows what the server understood, so the UI can suggest changes.
+**422** no feasible route: `details.preferences` shows what the server understood, so the UI can
+suggest changes. `details.reason` says why, and `details.proven` says whether code proved it:
+
+| `reason` | `proven` | Meaning |
+|---|---|---|
+| `ALL_CLOSED` | `true` | Every candidate place is already closed at the start time. |
+| `NONE_WITHIN_BUDGET` | `true` | No open candidate has a known cost within the budget. |
+| `PLANNER_FOUND_NONE` | `false` | The model returned no stops. A route may still exist; suggest changes, don't say "impossible". |
 
 ```json
 {
   "error": {
     "code": "NO_FEASIBLE_ROUTE",
-    "message": "No stops fit your time, budget, and opening hours right now. Try allowing more time or budget, or a different preference.",
+    "message": "No open candidate place has a known cost within your budget. Try a higher budget.",
     "requestId": "3bc41961f9c9408186d10b66aba2cf3d",
     "details": {
-      "preferences": { "desiredTime": 120, "desiredBudget": 25.0, "locationPreference": "coffee, art", "travelMethod": "walk" }
+      "preferences": { "desiredTime": 120, "desiredBudget": 2.0, "locationPreference": "coffee, art", "travelMethod": "walk" },
+      "reason": "NONE_WITHIN_BUDGET",
+      "proven": true
     }
   }
 }
@@ -288,6 +304,7 @@ export interface Location {
   name: string;
   address: string;
   closingTime: string;          // usually "HH:MM", 24-hour, local time
+  estimatedCost?: number;       // US dollars from the catalog; always present on route stops
 }
 
 export interface Quest {
@@ -303,7 +320,7 @@ export interface QuestRoute {
   endLocation: { address: string };
   totalTime?: number;           // minutes
   totalDistance?: number;       // miles
-  estimatedCost?: number;       // US dollars
+  estimatedCost: number;        // US dollars, sum of stop costs, computed by the server
   mock?: true;                  // demo data: show a "Demo" badge
 }
 
@@ -426,8 +443,8 @@ try {
   parse them as dates in the browser's time zone.
 - **Per-stop card:** name, address, `arrivalTime`–`departureTime`, "Closes `closingTime`",
   and `travelDistance` miles from the previous point.
-- **Summary:** `totalTime` minutes, `totalDistance` miles, `estimatedCost` dollars. These may
-  be missing; hide the row instead of showing `undefined`. Label them as estimates.
+- **Summary:** `totalTime` minutes, `totalDistance` miles, `estimatedCost` dollars. `totalTime` and
+  `totalDistance` may be missing; hide the row instead of showing `undefined`. Label them as estimates.
 - **Demo badge:** if `mock === true`, clearly show that the places are demo data and not real.
 - **Maps:** the API returns addresses, not coordinates. Geocode them in the frontend with your
   map provider, or ask for coordinates to be added to the API.

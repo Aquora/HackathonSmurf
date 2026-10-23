@@ -74,8 +74,11 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
   mock adapters, route validation, and 55 passing tests. Verified locally and in Docker in
   mock mode only. Not verified: live model gateway, Snowflake procedure. Open: which
   endpoint serves "Cursor".
-
-
+- [x] 2026-10-23: Budget and time enforced in code on the main backend: Snowflake returns
+  `estimatedCost`, code sums stop costs and rejects over-budget/over-time routes, and
+  provable infeasibility (all closed, nothing affordable) returns `NO_FEASIBLE_ROUTE`
+  with `proven: true` before calling the model. 73 tests pass; mock server smoke-checked.
+  Earlier standalone backend preserved as tag `kian-backend-v1`.
 - [x] Created six main work areas with AGENTS.md contributor guides only; no nested
   source folders, dependencies, application code, or executable tests were added.
 
