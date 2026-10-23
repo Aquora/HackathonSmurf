@@ -100,7 +100,7 @@ test("duplicate usernames and emails are rejected with a generic message", async
 test("sign out ends the session and protects pages again", async ({ page }) => {
   await signInWithPassword(page, player.username, player.password);
   await expect(page).toHaveURL(/\/quests$/);
-  await page.goto("/profile");
+  await page.goto("/settings");
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/$/);
   await page.goto("/quests");

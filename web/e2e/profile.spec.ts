@@ -40,7 +40,7 @@ async function signIn(page: Page, username: string) {
   await page.getByLabel("Username").fill(username);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/profile$/);
+  await expect(page).toHaveURL((url) => url.pathname === "/profile");
 }
 
 const avatar = (page: Page) => page.locator(".player-banner__details .player-avatar");
@@ -77,13 +77,16 @@ test("uploaded picture replaces the Google photo, and removing it restores the p
   const username = `google_${run}`;
   await signIn(page, username);
 
-  await page.getByRole("button", { name: "Edit profile" }).click();
+  // "Edit profile" opens Player settings, where the picture is changed.
+  await page.getByRole("link", { name: "Edit profile" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
   await page.locator('input[type="file"][name="avatar"]').setInputFiles({ name: "me.png", mimeType: "image/png", buffer: PNG });
   await page.getByRole("button", { name: "Save picture" }).click();
+  await expect(page.getByRole("status")).toHaveText("Profile picture updated.");
 
+  await page.goto("/profile");
   const img = avatar(page).locator("img.player-avatar__photo");
   await expect(img).toHaveAttribute("src", /^\/api\/avatars\/[0-9a-f]{24}\?v=\d+$/);
-  await expect(page.getByRole("button", { name: "Edit profile" })).toHaveAttribute("aria-expanded", "false");
 
   const response = await page.request.get((await img.getAttribute("src"))!);
   expect(response.status()).toBe(200);
@@ -91,8 +94,10 @@ test("uploaded picture replaces the Google photo, and removing it restores the p
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
   expect(Buffer.from(await response.body()).equals(PNG)).toBe(true);
 
-  await page.getByRole("button", { name: "Edit profile" }).click();
+  await page.goto("/settings");
   await page.getByRole("button", { name: /Remove uploaded picture \(use your Google photo\)/ }).click();
+  await expect(page.getByRole("status")).toHaveText("Profile picture updated.");
+  await page.goto("/profile");
   await expect(avatar(page).locator("img.player-avatar__photo")).toHaveAttribute("src", /googleusercontent\.com/);
   const stored = await mongo.db().collection("users").findOne({ username });
   expect(stored?.avatarUpdatedAt).toBeUndefined();
@@ -101,7 +106,7 @@ test("uploaded picture replaces the Google photo, and removing it restores the p
 test("files that aren't PNG, JPEG, or WebP are rejected on the server", async ({ page }) => {
   const username = `plain_${run}`;
   await signIn(page, username);
-  await page.getByRole("button", { name: "Edit profile" }).click();
+  await page.goto("/settings");
   await page.locator('input[type="file"][name="avatar"]').setInputFiles({
     name: "evil.png",
     mimeType: "image/png",
@@ -112,4 +117,22 @@ test("files that aren't PNG, JPEG, or WebP are rejected on the server", async ({
   const user = await mongo.db().collection("users").findOne({ username });
   expect(await mongo.db().collection("avatars").countDocuments({ _id: user!._id })).toBe(0);
   expect(user?.avatarUpdatedAt).toBeUndefined();
+});
+
+test("Player settings shows the account and signs out", async ({ page }) => {
+  const username = `plain_${run}`;
+  await signIn(page, username);
+
+  // Reachable from the header menu.
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("menuitem", { name: "Player settings" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page.getByRole("heading", { name: /Player\s*settings/ })).toBeVisible();
+  await expect(page.getByText(`@${username}`)).toBeVisible();
+  await expect(page.getByText(`${username}@example.com`)).toBeVisible();
+
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.goto("/settings");
+  await expect(page).toHaveURL(/\/sign-in\?callbackUrl=/);
 });

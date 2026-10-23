@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import lockKeyhole from "@/assets/lock-keyhole.svg";
 import { BottomNav } from "@/components/BottomNav/BottomNav";
 import { PlayerAvatar } from "@/components/PlayerAvatar/PlayerAvatar";
 import { WideLink } from "@/components/WideButton/WideButton";
-import { SignOutButton } from "@/features/auth/AuthButtons";
-import { ProfileEditor } from "@/features/profile/ProfileEditor";
 import { getPlayerProfile } from "@/lib/profile";
-import "@/features/auth/auth-pages.css";
 import "@/features/profile/profile.css";
 
 export const metadata: Metadata = { title: "Profile · Local Quest" };
@@ -54,12 +52,12 @@ export default async function ProfilePage() {
               <p className="player-banner__meta">Joined {joinedFormat.format(profile.joinedAt)}</p>
             </div>
           </div>
-          <ProfileEditor
-            avatar={profile.avatar}
-            name={profile.displayName}
-            hasGooglePhoto={profile.hasGooglePhoto}
-            tagline="Finding little adventures."
-          />
+          <div className="player-banner__tagline-row">
+            <p className="player-banner__tagline">Finding little adventures.</p>
+            <Link className="profile-edit-button" href="/settings">
+              Edit profile
+            </Link>
+          </div>
         </div>
         <div className="player-banner__ground" />
       </section>
@@ -113,13 +111,6 @@ export default async function ProfilePage() {
         <p className="profile-log__empty">No quests completed yet. Finished quests will show up here.</p>
         <WideLink href="/quests" label="Find your next quest" />
       </section>
-
-      <div className="account-bar">
-        <p className="account-bar__who">
-          Signed in as <strong>{profile.username ? `@${profile.username}` : profile.displayName}</strong>
-        </p>
-        <SignOutButton />
-      </div>
 
       <BottomNav active="/profile" />
     </main>

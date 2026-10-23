@@ -19,7 +19,7 @@ class TooManyAttempts extends CredentialsSignin {
 const DAY_SECONDS = 24 * 60 * 60;
 
 /** Pages that need a signed-in user. The proxy redirects; each page also checks for itself. */
-export const PROTECTED_PATHS = ["/quests", "/friends", "/profile"];
+export const PROTECTED_PATHS = ["/quests", "/friends", "/profile", "/settings"];
 
 export function isProtectedPath(pathname: string) {
   return PROTECTED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));

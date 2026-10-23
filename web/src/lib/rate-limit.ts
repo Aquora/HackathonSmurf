@@ -15,11 +15,20 @@ export interface RateLimitRule {
   windowMs: number;
 }
 
+/** Positive integer from the environment, or the fallback. */
+function envLimit(name: string, fallback: number) {
+  const value = Number(process.env[name]);
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
 export const LIMITS = {
   /** Failed-or-not sign-in attempts per username+IP. */
   signInPerAccount: { limit: 5, windowMs: 15 * 60_000 },
-  /** All sign-in attempts per IP (slows credential stuffing across usernames). */
-  signInPerIp: { limit: 30, windowMs: 15 * 60_000 },
+  /**
+   * All sign-in attempts per IP (slows credential stuffing across usernames).
+   * Raise SIGN_IN_LIMIT_PER_IP when many users share one IP (campus Wi-Fi, NAT) or for test runs.
+   */
+  signInPerIp: { limit: envLimit("SIGN_IN_LIMIT_PER_IP", 30), windowMs: 15 * 60_000 },
   /** Registrations per IP. */
   registerPerIp: { limit: 5, windowMs: 60 * 60_000 },
 } satisfies Record<string, RateLimitRule>;

@@ -82,7 +82,9 @@
 }
 
 .profile-edit-button {
+  display: inline-flex;
   flex-shrink: 0;
+  align-items: center;
   height: 32px;
   padding: 0 12px;
   background: var(--color-input-bg);
@@ -91,11 +93,11 @@
   font-family: var(--font-body);
   font-size: 20px;
   color: var(--color-link);
+  text-decoration: none;
   cursor: pointer;
 }
 
-.profile-edit-button:active,
-.profile-edit-button[aria-expanded="true"] {
+.profile-edit-button:active {
   translate: 0 2px;
   box-shadow: 0 2px 0 0 var(--color-shadow-deep);
 }
@@ -106,7 +108,7 @@
   border: 1px solid var(--color-input-border);
 }
 
-/* ---------- Picture editor (opened by "Edit profile") ---------- */
+/* ---------- Picture editor (Player settings page) ---------- */
 
 .profile-editor {
   display: flex;
@@ -181,6 +183,13 @@
   color: var(--color-link);
   text-decoration: underline;
   cursor: pointer;
+}
+
+.profile-editor__status {
+  margin: 0;
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--color-link);
 }
 
 .profile-editor__error {
@@ -370,4 +379,47 @@
   font-size: 18px;
   line-height: 20px;
   color: var(--color-muted);
+}
+
+/* ---------- Player settings page ---------- */
+
+.settings-page {
+  min-height: calc(100dvh - var(--header-height));
+  padding-bottom: 100px; /* room for the fixed bottom nav */
+}
+
+.settings-page__content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+
+.settings-account {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 18px;
+  line-height: 20px;
+}
+
+.settings-account > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-account dt {
+  color: var(--color-muted);
+}
+
+.settings-account dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  color: var(--color-ink);
 }

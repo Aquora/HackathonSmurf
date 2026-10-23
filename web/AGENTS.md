@@ -22,14 +22,19 @@ For teammates and their AI assistants. Scope: `web/`.
   protected) from the LocalQuest Figma file (`dNPMN12L6f9V9tFchiIdeH`). The quest
   board shows empty states until quests are stored. The Explore page was removed;
   `/explore` redirects to `/quests` and the Explore tab is a disabled "coming soon" tab.
-- Sign out lives at the bottom of the profile page and on `/sign-in` when signed in.
+- Player settings (`/settings`, protected): profile picture upload/remove and Sign out.
+  Opened from the header menu and the profile page's "Edit profile" link. No Figma frame
+  exists for it; it reuses the sign-up banner and panel styles. Sign out also appears on
+  `/sign-in` when already signed in.
 - Profile picture: uploaded picture > Google photo > default pixel explorer
-  (`src/lib/profile.ts`). Uploads are server actions (`src/features/profile/actions.ts`,
+  (`src/lib/profile.ts`). Uploads happen on `/settings` via server actions (`src/features/profile/actions.ts`,
   ≤ 2 MB, PNG/JPEG/WebP detected from bytes) stored in MongoDB `avatars` and served by
   `src/app/api/avatars/[userId]/route.ts` to signed-in users. Quest stats, XP, badges,
   and the quest log show empty/zero states until quest progress is tracked.
 - Don't run `npm run build` while `npm run dev` is running; the build rewrites `.next`
   and can crash the dev server.
+- Header menu (`AppHeader/HeaderMenu.tsx`): Figma "Menu dropdown"; Player settings
+  links to `/settings`, Support is "coming soon" until a support destination exists.
 - Shared UI: `AppHeader`, `PixelButton`, `WideButton`/`WideLink`, `TextField`/`PasswordField`,
   `AuthBanner`, `BottomNav`, `PlayerAvatar`, `PixelSprite` (pixel art as run data in `sprites.ts`).
 - No quest API calls yet. The FastAPI backend does not yet verify these sessions.

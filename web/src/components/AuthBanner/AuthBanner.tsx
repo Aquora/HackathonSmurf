@@ -14,7 +14,7 @@ export function AuthBanner({ title, highlight, subtitle }: AuthBannerProps) {
     <section className="auth-banner">
       <div className="auth-banner__inner">
         <h1 className="auth-banner__title">
-          <span>{title}</span>
+          <span>{title}</span>{" "}
           <span className="auth-banner__highlight">{highlight}</span>
         </h1>
         <p className="auth-banner__subtitle">{subtitle}</p>

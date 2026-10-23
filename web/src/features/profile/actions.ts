@@ -49,6 +49,7 @@ export async function uploadAvatar(_previous: AvatarFormState, formData: FormDat
   await users.updateOne({ _id: userId }, { $set: { avatarUpdatedAt: updatedAt } });
 
   revalidatePath("/profile");
+  revalidatePath("/settings");
   return { savedAt: updatedAt.getTime() };
 }
 
@@ -62,5 +63,6 @@ export async function removeAvatar(): Promise<AvatarFormState> {
   await users.updateOne({ _id: userId }, { $unset: { avatarUpdatedAt: "" } });
 
   revalidatePath("/profile");
+  revalidatePath("/settings");
   return { savedAt: Date.now() };
 }
