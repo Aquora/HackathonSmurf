@@ -114,6 +114,7 @@ When OSM has no street address, `address` is the coordinates, e.g. `"34.057978, 
 3. Keep only those open for at least 20 continuous minutes between now (Pomona time) and now + `desiredTime`. Unknown hours are excluded, never guessed.
 4. Preference match is the best tag score across the preferences:
    - **Keyword:** 1.0 for an exact tag, the weight in `APP.INTEREST_SYNONYM` for a synonym (e.g. coffee → cafe 0.9), or 0.8 when the interest is a word in the tag.
+   - **Drink-only places are not "food":** OSM tags juice bars and boba shops as fast food. For food interests (`food`, `restaurant`, `meal`, …), a place whose only cuisine tags are drinks (juice, bubble tea, tea, coffee shop) keeps 0.4 × its match, so it gets no "food" reason (since `osm_hybrid_v6`, 2026-10-23). It still matches `coffee` or `boba`.
    - **Cortex fallback:** used only for interests with no keyword match nearby. `AI_EMBED` finds the single closest category (e.g. "cozy study spot" → cafe), which scores 0.85 if its cosine is at least 0.8. Only the top 1 is used because ranks 2–5 were noise on this data.
 5. Score = 0.7 × match + 0.3 × closeness. Ties go to the shorter distance, then `place_id`.
 6. The API needs exactly 10. If fewer than 10 open places are inside the radius, the rest are filled from farther open places, up to 25 km, ranked by score then distance. These are marked `within_radius: false` with a match reason saying so. Nothing is invented; the API's route check still enforces the time limit.

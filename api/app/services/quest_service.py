@@ -10,7 +10,7 @@ from ..domain.ports import LocationProvider, PreferenceExtractor, RoutePlanInput
 from ..domain.preferences import normalize_preferences
 from ..domain.route import RouteContext, prove_infeasible, validate_route
 from ..domain.tasks import assign_tasks
-from ..domain.types import CAMPUS_LOCATION, Preferences, QuestRoute, UserRequest
+from ..domain.types import CAMPUS_LOCATION, QUEST_TRAVEL_METHOD, Preferences, QuestRoute, UserRequest
 from ..errors import AppError, upstream_invalid
 
 log = logging.getLogger(__name__)
@@ -56,7 +56,8 @@ class QuestService:
 
         # 1–4. The model extracts preferences; code applies defaults to anything missing/invalid.
         raw_preferences = await self._extractor.extract_preferences(request.message, address)
-        preferences = normalize_preferences(raw_preferences)
+        # Quests are always driving quests, whatever travel method the message asked for.
+        preferences = normalize_preferences(raw_preferences).model_copy(update={"travelMethod": QUEST_TRAVEL_METHOD})
         log.info("preferences normalized: %s", preferences.model_dump())
 
         # 5–6. Snowflake returns exactly 10 candidate locations.
@@ -96,6 +97,7 @@ class QuestService:
                     start_time=start_time,
                     timezone=self._timezone,
                     tasks=tasks,
+                    facts=parsed.facts,
                     previous_issues=issues,
                 )
             )

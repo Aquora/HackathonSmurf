@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from .locations import CandidateFacts
 from .types import Location, Preferences, QuestTask
 
 
@@ -15,6 +16,8 @@ class RoutePlanInput:
     timezone: str
     # Randomly assigned task per location, keyed by location_key(name, address).
     tasks: dict[str, QuestTask] = field(default_factory=dict)
+    # Snowflake's categories/match reasons per location, keyed the same way. Prompt-only.
+    facts: dict[str, CandidateFacts] = field(default_factory=dict)
     previous_issues: list[str] = field(default_factory=list)  # for a single repair request
 
 

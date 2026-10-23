@@ -65,7 +65,8 @@ Use separate worktrees or disjoint file ownership; do not allocate agents needle
 ## 5. Hackathon demo and deployment
 - [ ] Follow TESTING.md and record actual results.
 - [ ] Rehearse the demo script in Deployment.md with honestly labeled simulations.
-- [ ] Select repository license; document models, data, setup, and event provenance.
+- [x] Select repository license (MIT, "Local Quest contributors", 2026-10-23; model/data licenses in README).
+- [ ] Document setup and event provenance.
 - [ ] Complete `Deployment.md` with verified setup, deploy, smoke-check, and
   rollback steps for the selected demo providers.
 - [ ] Deploy the demo and record smoke-check results and the shown version.
@@ -145,3 +146,13 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
   Verified locally in mock mode: 89 API tests, 46 web unit tests, lint, typecheck, and 24/25 Playwright
   tests including the new full journey (the Google OAuth test needs real Google credentials). Not
   re-verified with live Snowflake/Cortex; not deployed.
+- [x] 2026-10-23: Fixed irrelevant stops for "food and coffee". The planner now sees each
+  candidate's Snowflake categories and matched interests (exact/related/weak), prompt version
+  2026-10-23.3; "coffee and art" is split into separate interests before Snowflake; Snowflake
+  `osm_hybrid_v6` no longer counts juice/boba/coffee-only places as "food" (deployed). Live checks:
+  "food and coffee" and "pizza or hotdog" gave Starbucks + Domino's in 6/6 planner runs, all valid.
+  98 API tests pass. Known gap: boba shops tagged only `cafe` in OSM (OMOMO) don't match "boba".
+- [x] 2026-10-23: Every quest is a driving route (owner decision): the API sets `travelMethod` to
+  `drive` after normalizing, so Snowflake uses the drive radius and the planner writes "drive to";
+  web copy updated. Prompt version 2026-10-23.4. 99 API tests pass; live check with "walking" in the
+  message returned a drive route.

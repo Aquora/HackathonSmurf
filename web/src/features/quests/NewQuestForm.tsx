@@ -3,7 +3,7 @@
 import { useActionState, useId } from "react";
 import { generateQuest, type NewQuestState } from "./actions";
 
-const EXAMPLES = ["2 hours and $25. Coffee and art, walking", "Cheap food spots, 90 minutes", "Somewhere new, any budget"];
+const EXAMPLES = ["2 hours and $25. Coffee and art", "Cheap food spots, 90 minutes", "Somewhere new, any budget"];
 
 /** Free-text quest request. Time, budget and interests are read by the planner; blanks use its defaults. */
 export function NewQuestForm() {
@@ -30,8 +30,8 @@ export function NewQuestForm() {
         aria-describedby={hintId}
       />
       <p className="new-quest__hint" id={hintId}>
-        Mention time, budget, interests or how you&apos;ll travel. Anything you leave out uses 90 minutes,
-        $30 and no preference. Every quest starts and ends at Cal Poly Pomona.
+        Mention time, budget and interests. Anything you leave out uses 90 minutes, $30 and no
+        preference. Every quest is a driving route that starts and ends at Cal Poly Pomona.
       </p>
       <button type="submit" className="new-quest__submit" disabled={pending}>
         {pending ? "Planning your quest…" : "Plan my quest"}

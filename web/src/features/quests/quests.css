@@ -362,12 +362,27 @@
   line-height: 22px;
 }
 
+/* A label, not a button: no fill or shadow, so it isn't mistaken for "Start/Finish quest". */
 .quest-route__marker {
   flex-shrink: 0;
-  padding: 2px 8px;
-  background: var(--color-header);
-  border: 2px solid var(--color-input-border);
-  color: var(--color-white);
+  color: var(--color-header);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.quest-action {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quest-action__button {
+  min-height: 48px;
+  font-size: 22px;
+}
+
+.quest-action__button:disabled {
+  cursor: not-allowed;
 }
 
 .quest-stop {

@@ -53,8 +53,10 @@ test("plan a quest, check in at every stop, and see progress on the profile", as
 
   await expect(page.getByRole("heading", { name: "Your quest" })).toBeVisible();
   await expect(page.getByText("3801 W Temple Ave, Pomona, CA 91768").first()).toBeVisible();
-  const checkInButtons = page.getByRole("button", { name: "Check in (simulated)" });
-  const stopCount = await checkInButtons.count();
+  // Not started yet: no check-ins and no finish until the player presses Start.
+  await expect(page.getByRole("button", { name: "Check in (simulated)" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Finish quest" })).toHaveCount(0);
+  const stopCount = await page.getByText("Start the quest to check in").count();
   expect(stopCount).toBeGreaterThan(0);
 
   // The saved quest belongs to this player and starts with no check-ins.
@@ -62,6 +64,7 @@ test("plan a quest, check in at every stop, and see progress on the profile", as
   const saved = await mongo.db().collection("quests").findOne({ _id: new ObjectId(questId) });
   expect(saved?.checkIns).toHaveLength(stopCount);
   expect(saved?.status).toBe("active");
+  expect(saved?.startedAt).toBeUndefined();
 
   // Another player gets a 404 for this quest.
   const otherName = `other_${run}`;
@@ -76,16 +79,23 @@ test("plan a quest, check in at every stop, and see progress on the profile", as
   // Board lists it as in progress.
   await page.goto("/quests");
   await expect(page.getByRole("button", { name: "In progress (1)" })).toBeVisible();
-  await expect(page.getByText(`0 of ${stopCount} stops`)).toBeVisible();
+  await expect(page.getByText("Not started")).toBeVisible();
 
-  // Check in at every stop.
+  // Start, then check in at every stop. Finish stays locked until the last stamp.
   await page.goto(questUrl);
+  await page.getByRole("button", { name: "Start quest" }).click();
+  await expect(page.getByRole("heading", { name: "Quest in progress" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Check in (simulated)" })).toHaveCount(stopCount);
+  await expect(page.getByRole("button", { name: "Finish quest" })).toBeDisabled();
   for (let i = 0; i < stopCount; i++) {
     await page.getByRole("button", { name: "Check in (simulated)" }).first().click();
     await expect(page.getByText(`${i + 1} of ${stopCount} stops checked in`)).toBeVisible();
   }
+  await expect(page.getByText("Stamped", { exact: true })).toHaveCount(stopCount);
+  expect((await mongo.db().collection("quests").findOne({ _id: new ObjectId(questId) }))?.status).toBe("active");
+  await page.getByRole("button", { name: "Finish quest" }).click();
   await expect(page.getByRole("heading", { name: "Quest complete!" })).toBeVisible();
-  await expect(page.getByText("Stamped")).toHaveCount(stopCount);
+  await expect(page.getByRole("button", { name: "Finish quest" })).toHaveCount(0);
 
   // Board and profile reflect the completed quest.
   const xp = stopCount * 10 + 50;

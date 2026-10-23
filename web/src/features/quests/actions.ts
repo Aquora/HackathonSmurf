@@ -6,7 +6,7 @@ import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { requestQuestRoute, type QuestPreferences } from "@/lib/quest-api";
-import { checkInAtStop, deleteQuest, saveQuest } from "@/lib/quests";
+import { checkInAtStop, deleteQuest, finishQuest, saveQuest, startQuest } from "@/lib/quests";
 import { consume } from "@/lib/rate-limit";
 
 export interface NewQuestState {
@@ -72,17 +72,35 @@ export async function generateQuest(_previous: NewQuestState, formData: FormData
   redirect(`/quests/${questId}`);
 }
 
+function refreshQuestPages(questId: string) {
+  revalidatePath(`/quests/${questId}`);
+  revalidatePath("/quests");
+  revalidatePath("/profile");
+}
+
+/** "Start quest": unlocks check-ins. Safe to repeat. */
+export async function beginQuest(formData: FormData) {
+  const userId = await currentUserId();
+  if (!userId) return;
+  const questId = field(formData, "questId");
+  if (await startQuest(userId, questId)) refreshQuestPages(questId);
+}
+
+/** "Finish quest": completes it once every stop is checked in. Safe to repeat. */
+export async function completeQuest(formData: FormData) {
+  const userId = await currentUserId();
+  if (!userId) return;
+  const questId = field(formData, "questId");
+  if (await finishQuest(userId, questId)) refreshQuestPages(questId);
+}
+
 /** Simulated check-in: marks one stop done. Safe to repeat. */
 export async function checkIn(formData: FormData) {
   const userId = await currentUserId();
   if (!userId) return;
   const questId = field(formData, "questId");
   const stopIndex = Number(field(formData, "stopIndex"));
-  if (await checkInAtStop(userId, questId, stopIndex)) {
-    revalidatePath(`/quests/${questId}`);
-    revalidatePath("/quests");
-    revalidatePath("/profile");
-  }
+  if (await checkInAtStop(userId, questId, stopIndex)) refreshQuestPages(questId);
 }
 
 export async function removeQuest(formData: FormData) {

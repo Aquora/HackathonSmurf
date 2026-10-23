@@ -57,7 +57,7 @@ class TestQuestService:
         )
 
         extractor.extract_preferences.assert_awaited_once_with("surprise me", ADDRESS)
-        assert result.preferences.model_dump() == {"desiredTime": 90, "desiredBudget": 30, "locationPreference": "random", "travelMethod": "bike"}
+        assert result.preferences.model_dump() == {"desiredTime": 90, "desiredBudget": 30, "locationPreference": "random", "travelMethod": "drive"}  # bike overridden
         locations.find_locations.assert_awaited_once_with(result.preferences, ADDRESS)
         plan = planner.plan_route.await_args.args[0]
         assert (plan.address, plan.start_time, plan.timezone, plan.locations) == (ADDRESS, "10:00", TZ, MOCK_LOCATIONS)
@@ -173,7 +173,7 @@ class TestHttp:
         assert body["startLocation"] == {"address": ADDRESS} == body["endLocation"]
         first = body["quests"][0]
         assert {k: first[k] for k in ("location", "arrivalTime", "departureTime", "travelDistance")} == {
-            "location": MOCK_LOCATIONS[0].model_dump(), "arrivalTime": "10:20", "departureTime": "10:40", "travelDistance": 1,
+            "location": MOCK_LOCATIONS[0].model_dump(), "arrivalTime": "10:02", "departureTime": "10:22", "travelDistance": 1,  # 1 mi by car
         }  # fmt: skip
         assert first["task"]["id"] in {"photo_inside", "photo_building", "review_screenshot"}
         assert first["task"]["text"] and first["description"]
@@ -210,6 +210,17 @@ class TestHttp:
         await make_service(extractor=extractor, locations=locations).create_quest(REQUEST)
         assert extractor.extract_preferences.await_args.args[1] == ADDRESS
         assert locations.find_locations.await_args.args[1] == ADDRESS
+
+    async def test_every_quest_is_planned_for_driving(self):
+        extractor = AsyncMock()
+        extractor.extract_preferences.return_value = {"travelMethod": "walking", "locationPreference": "coffee"}
+        locations = AsyncMock()
+        locations.find_locations.return_value = [l.model_dump() for l in MOCK_LOCATIONS]
+        planner = AsyncMock(wraps=MockRoutePlanner())
+        result = await make_service(extractor=extractor, locations=locations, planner=planner).create_quest(REQUEST)
+        assert result.preferences.travelMethod == "drive"
+        assert locations.find_locations.await_args.args[0].travelMethod == "drive"
+        assert planner.plan_route.await_args.args[0].preferences.travelMethod == "drive"
 
     def test_malformed_json(self):
         res = client().post("/v1/quests", content="{bad", headers={"content-type": "application/json"})

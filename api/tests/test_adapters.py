@@ -60,6 +60,34 @@ async def test_route_prompt_lists_tasks_and_asks_for_descriptions():
     assert sent["task"] == QUEST_TASKS[2].model_dump()
 
 
+async def test_route_prompt_shows_categories_and_preference_matches():
+    from app.adapters.mock.mock_adapters import MOCK_LOCATIONS
+    from app.domain.locations import CandidateFacts, location_key
+
+    client = AsyncMock()
+    client.complete_json.return_value = {}
+    juice, pizza = MOCK_LOCATIONS[0], MOCK_LOCATIONS[1]
+    facts = {
+        location_key(pizza.name, pizza.address): CandidateFacts(
+            categories=["fast food", "pizza"], preference_matches=["tag 'pizza' matches interest 'pizza'"],
+            interest_matches=[("pizza", "exact")], rank=1, distance_miles=0.9, within_range=True,
+        ),
+    }  # fmt: skip
+    await ModelAdapter(client).plan_route(
+        RoutePlanInput(
+            address="1 Home St", preferences=DEFAULT_PREFERENCES, locations=[juice, pizza], start_time="10:00",
+            timezone="America/Los_Angeles", facts=facts,
+        )
+    )  # fmt: skip
+    system, user = client.complete_json.await_args.args[0]
+    assert "never its name" in system["content"] and '"matchesPreference" is non-empty' in system["content"]
+    sent = json.loads(user["content"])["locations"]
+    assert "categories" not in sent[0]  # no facts known: nothing made up
+    assert sent[1]["categories"] == ["fast food", "pizza"]
+    assert sent[1]["matchesPreference"] == ["tag 'pizza' matches interest 'pizza'"]
+    assert (sent[1]["rank"], sent[1]["distanceMiles"], sent[1]["withinTravelRange"]) == (1, 0.9, True)
+
+
 class TestSnowflakeLocationProvider:
     async def test_calls_procedure_with_bound_params_and_parses_variant(self):
         executor = AsyncMock()

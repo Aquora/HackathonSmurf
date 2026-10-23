@@ -17,6 +17,8 @@ TRAVEL_SYNONYMS = {
 }  # fmt: skip
 
 _UNIT_SUFFIX = re.compile(r"\s*(minutes?|mins?|dollars?|usd)\s*$", re.IGNORECASE)
+# Snowflake splits interests on commas only, so "coffee and art" would be searched as one phrase.
+_INTEREST_SEPARATORS = re.compile(r"\s*(?:,|;|/|&|\+|\band\b|\bor\b)\s*", re.IGNORECASE)
 
 
 def _to_number(value: Any) -> float | None:
@@ -44,6 +46,18 @@ def _to_text(value: Any) -> str | None:
     return text
 
 
+def normalize_location_preference(value: Any) -> str:
+    """ "coffee and art" / "pizza or hot dogs" / "food & drinks" -> comma-separated interests."""
+    text = _to_text(value)
+    if not text:
+        return DEFAULT_PREFERENCES.locationPreference
+    parts: list[str] = []
+    for part in _INTEREST_SEPARATORS.split(text):
+        if part and part.lower() not in (p.lower() for p in parts):
+            parts.append(part)
+    return ", ".join(parts) or DEFAULT_PREFERENCES.locationPreference
+
+
 def normalize_travel_method(value: Any) -> str:
     text = _to_text(value)
     if not text:
@@ -62,6 +76,6 @@ def normalize_preferences(raw: Any) -> Preferences:
         desiredBudget=(
             round(budget, 2) if budget is not None and 0 <= budget <= MAX_BUDGET_DOLLARS else DEFAULT_PREFERENCES.desiredBudget
         ),
-        locationPreference=_to_text(obj.get("locationPreference")) or DEFAULT_PREFERENCES.locationPreference,
+        locationPreference=normalize_location_preference(obj.get("locationPreference")),
         travelMethod=normalize_travel_method(obj.get("travelMethod")),
     )
