@@ -12,6 +12,8 @@ Interactive docs at `/docs` (disabled when `APP_ENV=production`).
 3. Code normalizes it; missing/invalid values default to `90`, `30`, `"random"`, `"drive"`.
 4. **Snowflake** procedure returns candidate locations; code requires exactly 10 unique ones.
 5. **Cursor** plans a route from those 10 that starts and ends at Cal Poly Pomona.
+   Each of the 10 locations is sent with a randomly assigned task (picked by code), and
+   Cursor writes a short description for every stop it chooses.
 6. Code validates the route (known places only, no duplicates, ordered times, open at
    departure, within `desiredTime`, catalog costs within `desiredBudget`), asks the model
    once to repair it if invalid, then returns it. `estimatedCost` is summed by code.
@@ -25,7 +27,7 @@ python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 cp .env.example .env          # defaults run fully offline with mock adapters
 .venv/bin/python -m app       # http://localhost:8080 — reads .env; real env vars win
-.venv/bin/pytest              # 74 tests
+.venv/bin/pytest              # 86 tests
 
 # Print the exact SQL + JSON the API would send to Snowflake (no Snowflake call)
 .venv/bin/python -m scripts.snowflake_payload "2 hours, \$25, coffee, walking"

@@ -4,13 +4,15 @@ and the budget. The returned estimatedCost is summed from catalog costs; the
 model's own cost total is ignored."""
 
 import math
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .locations import clock_minutes, location_key, normalize_clock_time
-from .types import LOCATION_COUNT, Location, Quest, QuestRoute, UserLocation
+from .tasks import DESCRIPTION_MAX_LENGTH, fallback_description, random_task
+from .types import LOCATION_COUNT, Location, Quest, QuestRoute, QuestTask, UserLocation
 
 # A closing time earlier than this (e.g. "01:30") is read as "after midnight".
 LATE_NIGHT_CUTOFF_MINUTES = 5 * 60
@@ -31,6 +33,7 @@ class _RawQuest(BaseModel):
     arrivalTime: str = Field(min_length=1)
     departureTime: str = Field(min_length=1)
     travelDistance: float = _NonNeg
+    description: Any = None  # checked leniently: a bad description falls back to template text
 
 
 class _RawRoute(BaseModel):
@@ -48,6 +51,8 @@ class RouteContext:
     start_time: str  # local "HH:MM"
     desired_time: int  # minutes available for the whole outing
     desired_budget: float  # US dollars
+    # Task assigned to each candidate, keyed by location_key(). The model's own task choice is ignored.
+    tasks: Mapping[str, QuestTask] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -152,12 +157,19 @@ def validate_route(raw: Any, ctx: RouteContext) -> RouteValidationResult:
         else:
             cost_total += candidate.estimatedCost
 
+        task = ctx.tasks.get(key) or random_task()
+        description = " ".join(q.description.split()) if isinstance(q.description, str) else ""
+        if not description or len(description) > DESCRIPTION_MAX_LENGTH:
+            description = fallback_description(candidate, task)
+
         quests.append(
             Quest(
                 location=candidate,
                 arrivalTime=normalize_clock_time(q.arrivalTime),
                 departureTime=normalize_clock_time(q.departureTime),
                 travelDistance=_r2(q.travelDistance),
+                task=task,
+                description=description,
             )
         )
 

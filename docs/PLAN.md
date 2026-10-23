@@ -110,3 +110,6 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
 - [x] Matched the API's call LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS(json, address) on 2026-10-23;
   geocoding uses OSM addresses in Snowflake (trial blocks external access). Verified the
   exact call and error cases as LQ_APP_RO; dropped LOCAL_QUEST_DEV.
+- [x] 2026-10-23: Added a random task (inside photo, building photo, review screenshot) and a
+  model-written description to every quest stop; prompt version 2026-10-23.2. 86 tests pass
+  (mock mode). Not done: task uploads/verification; not yet run against a live model.

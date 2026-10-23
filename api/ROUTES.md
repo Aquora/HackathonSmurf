@@ -79,7 +79,9 @@ travel method. Anything it can't find uses a default:
       },
       "arrivalTime": "10:20",
       "departureTime": "10:40",
-      "travelDistance": 1.0
+      "travelDistance": 1.0,
+      "task": { "id": "photo_inside", "text": "Take a picture of the inside" },
+      "description": "[Demo] Stop 1: visit Demo Bean Coffee on your way around the quest."
     },
     {
       "location": {
@@ -90,7 +92,9 @@ travel method. Anything it can't find uses a default:
       },
       "arrivalTime": "11:00",
       "departureTime": "11:20",
-      "travelDistance": 1.0
+      "travelDistance": 1.0,
+      "task": { "id": "photo_building", "text": "Take a picture of the building" },
+      "description": "[Demo] Stop 2: visit Demo Gallery of Art on your way around the quest."
     }
   ],
   "endLocation": { "address": "3801 W Temple Ave, Pomona, CA 91768" },
@@ -112,11 +116,28 @@ travel method. Anything it can't find uses a default:
 | `quests[].arrivalTime` | string | yes | Local `"HH:MM"` (24-hour). |
 | `quests[].departureTime` | string | yes | Local `"HH:MM"` (24-hour), before the place closes. |
 | `quests[].travelDistance` | number | yes | Miles from the previous point to this stop. |
+| `quests[].task.id` | string | yes | `"photo_inside"`, `"photo_building"` or `"review_screenshot"`. Use this to pick the upload UI. |
+| `quests[].task.text` | string | yes | The task to show the user (see the table below). |
+| `quests[].description` | string | yes | 1–2 sentence description of the stop written by the model (max 500 characters). |
 | `endLocation.address` | string | yes | Always Cal Poly Pomona (same as `startLocation`). |
 | `totalTime` | integer | no | Model's estimate of minutes for the whole trip, including the return; checked to be within `desiredTime`. |
 | `totalDistance` | number | no | Estimated miles, including the return. |
 | `estimatedCost` | number | yes | Sum of the stops' catalog `estimatedCost`, in US dollars. Computed by the server. |
 | `mock` | `true` | no | Only present when fake demo data was used. Show a "demo" label if it is. |
+
+Each stop gets **one random task** from this list. The server picks it, not the model, so
+it's random per request and always one of these three:
+
+| `task.id` | `task.text` |
+|---|---|
+| `photo_inside` | Take a picture of the inside |
+| `photo_building` | Take a picture of the building |
+| `review_screenshot` | Give a review of the establishment and upload a screenshot |
+
+The **description** is written by the model, told to use only the place's name, address,
+closing time and cost and not to invent history, offers or discounts. If the model's
+description is missing, empty or over 500 characters, the server substitutes
+`"Stop by {name} at {address}. Your task: {task}."`. In mock mode it starts with `[Demo]`.
 
 Things the server guarantees (it checks them, not just the model):
 
@@ -307,11 +328,20 @@ export interface Location {
   estimatedCost?: number;       // US dollars from the catalog; always present on route stops
 }
 
+export type QuestTaskId = "photo_inside" | "photo_building" | "review_screenshot";
+
+export interface QuestTask {
+  id: QuestTaskId;              // use to choose the upload UI
+  text: string;                 // show to the user
+}
+
 export interface Quest {
   location: Location;
   arrivalTime: string;          // "HH:MM", 24-hour, local time
   departureTime: string;        // "HH:MM", 24-hour, local time
   travelDistance: number;       // miles from the previous point
+  task: QuestTask;              // one random task per stop
+  description: string;          // short description of the stop
 }
 
 export interface QuestRoute {
@@ -441,8 +471,11 @@ try {
 - **Times** are plain `"HH:MM"` strings in the server's time zone (`America/Los_Angeles`
   by default). Show them as-is, or format them, for example `"13:05"` → `1:05 PM`. Don't
   parse them as dates in the browser's time zone.
-- **Per-stop card:** name, address, `arrivalTime`–`departureTime`, "Closes `closingTime`",
-  and `travelDistance` miles from the previous point.
+- **Per-stop card:** name, address, `description`, `arrivalTime`–`departureTime`,
+  "Closes `closingTime`", `travelDistance` miles from the previous point, and the `task`.
+- **Task:** show `task.text`, and switch the upload control on `task.id`: a camera/photo
+  picker for `photo_inside` and `photo_building`, and an image upload for the review
+  screenshot in `review_screenshot`. The API doesn't accept uploads yet.
 - **Summary:** `totalTime` minutes, `totalDistance` miles, `estimatedCost` dollars. `totalTime` and
   `totalDistance` may be missing; hide the row instead of showing `undefined`. Label them as estimates.
 - **Demo badge:** if `mock === true`, clearly show that the places are demo data and not real.

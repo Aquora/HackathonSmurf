@@ -1,3 +1,4 @@
+import random
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
@@ -5,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.adapters.mock.mock_adapters import MOCK_LOCATIONS, MockLocationProvider, MockPreferenceExtractor, MockRoutePlanner
+from app.domain.locations import location_key
 from app.domain.types import CAMPUS_LOCATION, UserRequest
 from app.errors import AppError, upstream_unavailable
 from app.main import FixedWindowRateLimiter, create_app
@@ -18,7 +20,7 @@ BODY = {"message": "I have 2 hours and $25, want coffee and art, walking"}
 REQUEST = UserRequest.model_validate(BODY)
 
 
-def make_service(extractor=None, locations=None, planner=None, mock=False) -> QuestService:
+def make_service(extractor=None, locations=None, planner=None, mock=False, seed=0) -> QuestService:
     return QuestService(
         extractor=extractor or MockPreferenceExtractor(),
         locations=locations or MockLocationProvider(),
@@ -26,6 +28,7 @@ def make_service(extractor=None, locations=None, planner=None, mock=False) -> Qu
         timezone=TZ,
         mock=mock,
         now=lambda: NOW,
+        rng=random.Random(seed),  # seeded so task choices are repeatable
     )
 
 
@@ -124,6 +127,23 @@ class TestQuestService:
         assert any("over the $25.00 budget" in i for i in e.value.details["issues"])
         assert "over the $25.00 budget" in planner.plan_route.await_args.args[0].previous_issues[0]
 
+    async def test_random_tasks_are_sent_to_planner_and_kept_on_stops(self):
+        real = MockRoutePlanner()
+        planner = AsyncMock()
+        planner.plan_route.side_effect = real.plan_route
+        result = await make_service(planner=planner, seed=7).create_quest(REQUEST)
+        sent = planner.plan_route.await_args.args[0].tasks
+        assert len(sent) == 10  # one per Snowflake location
+        for stop in result.route.quests:
+            assert stop.task == sent[location_key(stop.location.name, stop.location.address)]
+
+    async def test_task_choice_varies_between_requests(self):
+        seen = set()
+        for seed in range(20):
+            route = (await make_service(seed=seed).create_quest(REQUEST)).route
+            seen.update(stop.task.id for stop in route.quests)
+        assert seen == {"photo_inside", "photo_building", "review_screenshot"}
+
     async def test_labels_mock_responses(self):
         assert (await make_service(mock=True).create_quest(REQUEST)).route.mock is True
 
@@ -139,7 +159,12 @@ class TestHttp:
         assert res.status_code == 200
         body = res.json()
         assert body["startLocation"] == {"address": ADDRESS} == body["endLocation"]
-        assert body["quests"][0] == {"location": MOCK_LOCATIONS[0].model_dump(), "arrivalTime": "10:20", "departureTime": "10:40", "travelDistance": 1}
+        first = body["quests"][0]
+        assert {k: first[k] for k in ("location", "arrivalTime", "departureTime", "travelDistance")} == {
+            "location": MOCK_LOCATIONS[0].model_dump(), "arrivalTime": "10:20", "departureTime": "10:40", "travelDistance": 1,
+        }  # fmt: skip
+        assert first["task"]["id"] in {"photo_inside", "photo_building", "review_screenshot"}
+        assert first["task"]["text"] and first["description"]
         assert "mock" not in body
         assert res.headers["x-request-id"]
 

@@ -106,6 +106,28 @@ async def test_cursor_adapter_sends_message_as_data_and_repair_feedback():
     assert len(messages) == 3 and "quests[0] bad" in messages[2]["content"]
 
 
+async def test_route_prompt_lists_tasks_and_asks_for_descriptions():
+    from app.adapters.mock.mock_adapters import MOCK_LOCATIONS
+    from app.domain.locations import location_key
+    from app.domain.types import QUEST_TASKS
+
+    client = AsyncMock()
+    client.complete_json.return_value = {}
+    coffee = MOCK_LOCATIONS[0]
+    await CursorAdapter(client).plan_route(
+        RoutePlanInput(
+            address="1 Home St", preferences=DEFAULT_PREFERENCES, locations=[coffee], start_time="10:00",
+            timezone="America/Los_Angeles", tasks={location_key(coffee.name, coffee.address): QUEST_TASKS[2]},
+        )
+    )  # fmt: skip
+    system, user = client.complete_json.await_args.args[0]
+    for task in QUEST_TASKS:
+        assert task.text in system["content"]
+    assert '"description"' in system["content"]
+    sent = json.loads(user["content"])["locations"][0]
+    assert sent["task"] == QUEST_TASKS[2].model_dump()
+
+
 class TestSnowflakeLocationProvider:
     async def test_calls_procedure_with_bound_params_and_parses_variant(self):
         executor = AsyncMock()

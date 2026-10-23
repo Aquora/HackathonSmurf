@@ -382,3 +382,8 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
 - 2026-10-23: Snowflake entry point is LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS(request VARIANT,
   address STRING) to match the API. Address geocoded against OSM addresses in Snowflake
   because the trial account blocks external network access.
+- 2026-10-23: Each quest stop now has a `task` and a `description`. Code picks one task at
+  random per Snowflake candidate (inside photo, building photo, or review screenshot) and
+  sends it in the Cursor prompt; the returned stop always carries the code-assigned task.
+  Cursor writes the description from the provided facts only; a missing or overlong one is
+  replaced with template text. Uploads for tasks are not implemented yet.
