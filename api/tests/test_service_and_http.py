@@ -99,6 +99,30 @@ class TestQuestService:
         with pytest.raises(AppError) as e:
             await make_service(planner=planner).create_quest(REQUEST)
         assert (e.value.status_code, e.value.code) == (422, "NO_FEASIBLE_ROUTE")
+        assert (e.value.details["reason"], e.value.details["proven"]) == ("PLANNER_FOUND_NONE", False)
+
+    async def test_provably_unaffordable_skips_the_planner(self):
+        extractor = AsyncMock()
+        extractor.extract_preferences.return_value = {"desiredBudget": 0}
+        locations = AsyncMock()
+        locations.find_locations.return_value = [l.model_dump() | {"estimatedCost": 5} for l in MOCK_LOCATIONS]
+        planner = AsyncMock()
+        with pytest.raises(AppError) as e:
+            await make_service(extractor, locations, planner).create_quest(REQUEST)
+        assert (e.value.code, e.value.details["reason"], e.value.details["proven"]) == ("NO_FEASIBLE_ROUTE", "NONE_WITHIN_BUDGET", True)
+        planner.plan_route.assert_not_awaited()
+
+    async def test_over_budget_route_gets_repair_then_502(self):
+        over = {"quests": [{"location": MOCK_LOCATIONS[9].model_dump(), "arrivalTime": "10:10", "departureTime": "10:30", "travelDistance": 1}]}
+        planner = AsyncMock()
+        planner.plan_route.return_value = over  # arcade alone is $25, exactly the request budget
+        assert (await make_service(planner=planner).create_quest(REQUEST)).route.estimatedCost == 25
+        over["quests"].append({"location": MOCK_LOCATIONS[0].model_dump(), "arrivalTime": "10:40", "departureTime": "10:50", "travelDistance": 1})
+        with pytest.raises(AppError) as e:
+            await make_service(planner=planner).create_quest(REQUEST)
+        assert e.value.code == "UPSTREAM_INVALID_RESPONSE"
+        assert any("over the $25.00 budget" in i for i in e.value.details["issues"])
+        assert "over the $25.00 budget" in planner.plan_route.await_args.args[0].previous_issues[0]
 
     async def test_labels_mock_responses(self):
         assert (await make_service(mock=True).create_quest(REQUEST)).route.mock is True

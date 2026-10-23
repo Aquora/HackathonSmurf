@@ -1,4 +1,5 @@
 import json
+import math
 import re
 from dataclasses import dataclass
 from typing import Any, Mapping
@@ -35,6 +36,22 @@ def _pick(row: Mapping[str, Any], *keys: str) -> Any:
         if value is not None:
             return value
     return None
+
+
+_INVALID = object()
+
+
+def _to_cost(value: Any) -> Any:
+    """Catalog cost in dollars: None if absent (unknown), _INVALID if unusable."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return _INVALID
+    try:
+        cost = float(value)  # numbers, Decimal from the connector, numeric strings
+    except (TypeError, ValueError):
+        return _INVALID
+    return round(cost, 2) if math.isfinite(cost) and cost >= 0 else _INVALID
 
 
 @dataclass(frozen=True)
@@ -85,12 +102,19 @@ def parse_locations(raw: Any) -> LocationParseResult:
         if missing:
             continue
 
+        cost = _to_cost(_pick(row, "estimatedCost", "estimated_cost"))
+        if cost is _INVALID:
+            issues.append(f"locations[{i}].estimatedCost must be a non-negative number")
+            continue
+
         key = location_key(name, address)
         if key in seen:
             issues.append(f"locations[{i}] duplicates an earlier location")
             continue
         seen.add(key)
-        locations.append(Location(name=name.strip(), address=address.strip(), closingTime=normalize_clock_time(closing)))
+        locations.append(
+            Location(name=name.strip(), address=address.strip(), closingTime=normalize_clock_time(closing), estimatedCost=cost)
+        )
 
     if not issues and len(locations) != LOCATION_COUNT:
         issues.append(f"expected exactly {LOCATION_COUNT} locations, received {len(locations)}")

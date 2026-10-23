@@ -344,6 +344,12 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
   duplicates, ordered times, departure before closing time. One repair request to the
   model on invalid output, then a 502. Empty route → 422 `NO_FEASIBLE_ROUTE`.
   Time/budget are soft targets for the model ("as closely as possible"), not rejected.
+  - 2026-10-23 update: budget and time are now **hard checks in code**. Snowflake returns
+    each place's `estimatedCost`; code sums the chosen stops (ignoring the model's total)
+    and rejects routes over `desiredBudget` or whose stops run past `desiredTime`. Places
+    with unknown cost cannot be used. `NO_FEASIBLE_ROUTE` carries `reason` and `proven`;
+    proven cases (all closed, nothing affordable) skip the model call. Still unverified by
+    code: travel times/distances (no routing provider) and opening times (not in data).
 - **Snowflake:** `snowflake/find_quest_locations.sql` (unverified against an account).
   No geocoding yet; locality is a city-name text match. Not yet: routing provider,
   persistence, check-ins, auth, approved-facts grounding.
