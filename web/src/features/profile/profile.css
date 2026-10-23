@@ -413,3 +413,9 @@
   text-align: right;
   color: var(--color-ink);
 }
+
+.profile-badges__count {
+  font-family: var(--font-body);
+  font-size: 18px;
+  color: var(--color-muted);
+}

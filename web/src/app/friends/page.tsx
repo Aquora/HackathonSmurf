@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
@@ -14,13 +15,15 @@ export const metadata: Metadata = { title: "Friends · Local Quest" };
 function PlayerRow({ player, children }: { player: PlayerSummary; children?: ReactNode }) {
   return (
     <li className="friend-row">
-      <span className="friend-row__avatar" aria-hidden="true">
-        {initials(player.name)}
-      </span>
-      <span className="friend-row__identity">
-        <span className="friend-row__name">{player.name}</span>
-        {player.username && <span className="friend-row__handle">@{player.username}</span>}
-      </span>
+      <Link className="friend-row__link" href={`/friends/${player.id}`}>
+        <span className="friend-row__avatar" aria-hidden="true">
+          {initials(player.name)}
+        </span>
+        <span className="friend-row__identity">
+          <span className="friend-row__name">{player.name}</span>
+          {player.username && <span className="friend-row__handle">@{player.username}</span>}
+        </span>
+      </Link>
       {children && <span className="friend-row__actions">{children}</span>}
     </li>
   );

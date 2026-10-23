@@ -137,3 +137,7 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
   CursorAdapter to ModelAdapter and the API error `details.upstream` value `"cursor"` to `"cortex"`
   (frontend code matching on it must change). 89 API tests pass (mock mode). Known: `llama3.3-70b`
   route planning exceeded the 20 s statement timeout; `llama3.1-8b` returned invalid routes.
+- [x] 2026-10-23: Friend player cards (branch `kian-friend-profiles`): `/friends/[userId]`
+  shows a friend's Figma player card with stats and badges (friends only), friend count on
+  cards, remove friend, and stats read from `user_stats` instead of hard-coded zeros.
+  39 unit and 24 Playwright tests pass against a disposable in-memory MongoDB; not deployed.

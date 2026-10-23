@@ -26,6 +26,11 @@ For teammates and their AI assistants. Scope: `web/`.
   Figma popup; requests are sent by exact username (optionally "@…") or exact name, with a
   pick list when several players share a name. Incoming requests (Accept/Decline) and sent
   requests (Cancel) are extra sections not in the design. Data: `src/lib/friends.ts`.
+  Each row links to that player's card at `/friends/[userId]`, which reuses the profile
+  Figma frame (`src/features/profile/PlayerCard.tsx`). Stats and badges are shown only to
+  accepted friends; others see a locked card with Add/Cancel/Accept actions. Friends can
+  be removed from the card. Stats come from `src/lib/stats.ts` (zero until quests are
+  recorded); `/profile` uses the same components.
 - Player settings (`/settings`, protected): profile picture upload/remove and Sign out.
   Opened from the header menu and the profile page's "Edit profile" link. No Figma frame
   exists for it; it reuses the sign-up banner and panel styles. Sign out also appears on
