@@ -1,7 +1,7 @@
 # Backend and AI: contributor guide
 
-For teammates and their AI assistants. Scope: `api/`. This folder currently
-contains instructions only; no implementation, dependencies, or commands are set up.
+For teammates and their AI assistants. Scope: `api/`. FastAPI scaffold exists;
+see [api/README.md](README.md) for verified setup/test commands and current status.
 
 ## Before working
 

@@ -14,7 +14,9 @@ Snowflake retrieval/analytics and open-weight AI for the proposed demo. Coordina
 choices that affect another component, authentication, shared storage, runtime
 compatibility, hosting, or costs with the integration lead and affected owners;
 material scope, security, and budget changes still require the product owner.
-No component technology has been selected by this documentation change.
+Selected so far: backend uses Python 3.11+ with FastAPI and Pydantic v2 (2026-10-23),
+chosen for Snowflake's Python connector, open-weight model tooling, and generated
+OpenAPI. Setup and checks are in `api/README.md`. Other components remain unselected.
 
 ## Components
 - Web: preference form, map, route cards, passport, and authenticated dashboard.

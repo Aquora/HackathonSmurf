@@ -1,7 +1,7 @@
 # Local Quest implementation plan
 
-Current phase: owner-confirmed generation workflow documented; contract details
-remain draft and no application implementation exists.
+Current phase: backend scaffold started (FastAPI); contract details remain draft and
+external adapters (Snowflake, AI, routing, storage) are not implemented.
 
 ## 1. Confirm scope and dependencies
 - [ ] Select neighborhood, validate event rules, and confirm the first demo scope.
@@ -80,3 +80,14 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
 
 - [x] Repurposed data/ guidance for account-storage definitions; Snowflake supplies
   candidate JSON directly to the backend. No credentials, database, or login code added.
+
+- [x] 2026-10-23: Backend selected as FastAPI. Scaffolded api/ with /health, shared
+  error envelope, request IDs, input normalization/defaults, and deterministic route
+  verification (stop membership, facts, hours, cost, time). 48 local tests, ruff
+  lint/format pass; dev server smoke-checked with curl. POST /v1/quests returns
+  503 DEPENDENCY_UNAVAILABLE until adapters exist. Not deployed; no live services.
+- [x] 2026-10-23: POST /v1/quests now runs end to end on fixture adapters (synthetic
+  catalog, template planner, straight-line routing, in-memory store), labeled demo and
+  fallback in every response. Adds one bounded repair and provable NO_FEASIBLE_ROUTE
+  checks. 62 local tests pass; live server smoke-checked with curl. Still no live
+  Snowflake, model, routing, or database; GET /v1/quests/{id} awaits session design.

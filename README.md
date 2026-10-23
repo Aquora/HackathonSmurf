@@ -53,9 +53,9 @@ chosen database/authentication service. Service credentials stay in server-side
 secret configuration. `data/` contains definitions and guidance, not live records.
 
 ## Development
-Commands, dependency versions, and environment configuration will be recorded
-once scaffolding is implemented and verified. Do not treat this document as proof
-that services have been provisioned.
+Backend (FastAPI): see [api/README.md](api/README.md) for verified setup, dev-server,
+test, and lint commands. Other components are not scaffolded yet. No services have
+been provisioned.
 
 ## License
 Undecided. Select an application license before publishing as open source; track
