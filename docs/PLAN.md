@@ -35,12 +35,15 @@ Current phase: API quest-generation slice implemented locally (mock-verified); l
     disposable MongoDB; Google verified only up to the redirect to Google).
   - [ ] Provision MongoDB and Google OAuth credentials per environment.
   - [ ] Shared rate-limit store; email verification and password reset.
-  - [ ] Backend verification of web sessions for quest ownership.
+  - [x] Ownership via the web server: Next.js checks the session, calls the API server-side, and
+    stores quests per user (API is not exposed to browsers). Direct API session checks not built.
   - [x] Profile page with picture upload (upload > Google photo > default avatar);
     stats, badges, and quest log are empty states until progress is tracked.
   - [x] Quest board (`/quests`) as the signed-in home page, with empty states; Explore page removed.
   - [x] Friends page with friend requests (send by username or name, accept/decline/cancel).
-  - [ ] Quest storage and data for the quest board, profile stats, badges, and quest log.
+  - [x] Quest storage and data for the quest board, profile stats, badges, and quest log (MongoDB `quests`).
+  - [x] Frontend connected to `POST /v1/quests`: plan form, quest detail with route and simulated
+    check-ins, error states (no feasible route with understood preferences, rate limit, upstream failure).
 - [ ] Backend/AI worker: normalization, AI candidate selection/order, grounding, verification, persistence in api/.
 - [ ] Snowflake worker: catalog sourcing/provenance, ranked top-10 queries, event views
   in snowflake/; supply candidate JSON directly to the backend.
@@ -137,3 +140,8 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
   CursorAdapter to ModelAdapter and the API error `details.upstream` value `"cursor"` to `"cortex"`
   (frontend code matching on it must change). 89 API tests pass (mock mode). Known: `llama3.3-70b`
   route planning exceeded the 20 s statement timeout; `llama3.1-8b` returned invalid routes.
+- [x] 2026-10-23: Connected web, API, and data. Web server calls the API and saves quests in MongoDB;
+  quest board, quest detail with idempotent simulated check-ins, and profile XP/badges/log use real data.
+  Verified locally in mock mode: 89 API tests, 46 web unit tests, lint, typecheck, and 24/25 Playwright
+  tests including the new full journey (the Google OAuth test needs real Google credentials). Not
+  re-verified with live Snowflake/Cortex; not deployed.

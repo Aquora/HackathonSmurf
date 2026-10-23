@@ -2,3 +2,5 @@
 .env
 *.p8
 *.pem
+.env.*
+!.env.example

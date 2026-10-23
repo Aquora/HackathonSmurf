@@ -18,6 +18,7 @@ adapter defaults.
 | `sessions` | Auth.js adapter | `sessionToken`, `userId`, `expires` | `session_token_unique` (unique) |
 | `verification_tokens` | Auth.js adapter | `identifier`, `token`, `expires` | `verification_token_unique` (unique) |
 | `friendships` | Friends page server actions (`web/src/features/friends/actions.ts`) | `requesterId`, `recipientId`, `pairKey` (both ids sorted and joined), `status` (`pending` or `accepted`), `createdAt`, `acceptedAt` | `pair_unique` (unique), `recipient_status`, `requester_status` (created on first use, in `web/src/lib/friends.ts`) |
+| `quests` | Quest board server actions (`web/src/features/quests/actions.ts`) | `userId`, `request` (the player's text), `route` (the API's validated `QuestRoute`, stored as returned), `checkIns` (one date-or-null per stop), `status` (`active` or `done`), `mock`, `createdAt`, `completedAt` | `quest_user_created` (created on first use, in `web/src/lib/quests.ts`) |
 | `avatars` | Profile picture upload (`web/src/features/profile/actions.ts`) | `_id` (= user `_id`), `data` (binary, ≤ 2 MB), `contentType` (`image/png`, `image/jpeg`, or `image/webp`, detected from the file bytes), `size`, `updatedAt` | `_id` only |
 
 A pair of players has at most one `friendships` document. Declining or cancelling a request
@@ -50,4 +51,8 @@ implemented).
 ## Retention and deletion
 
 Not yet decided (see PROJECT.md "Decisions for the owner"). Deleting a user should
-remove their `users` document and matching `accounts`, `avatars`, and `friendships` documents.
+remove their `users` document and matching `accounts`, `avatars`, `friendships`, and `quests` documents.
+
+Quest check-ins are simulated (a button, no QR or merchant check). A check-in only sets a
+stop's `checkIns` entry while it is still null, so repeating it never adds a second stamp or XP.
+Every read and write filters by `userId`, so players only see and change their own quests.

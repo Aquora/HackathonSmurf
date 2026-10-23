@@ -371,6 +371,29 @@
   color: var(--color-muted);
 }
 
+.profile-badge--unlocked .profile-badge__emblem {
+  background: var(--color-gold);
+  font-size: 32px;
+  color: var(--color-link);
+}
+
+.profile-log__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-log__item {
+  display: block;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-input-shadow);
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--color-link);
+}
+
 /* ---------- Player settings page ---------- */
 
 .settings-page {
