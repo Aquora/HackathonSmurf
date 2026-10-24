@@ -8,7 +8,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@node-rs/argon2"],
   poweredByHeader: false,
   // Self-contained server in .next/standalone for the Docker image (see web/Dockerfile).
-  output: "standalone",
+  // Vercel builds its own output, so standalone is only used off Vercel.
+  output: process.env.VERCEL ? undefined : "standalone",
   experimental: {
     // Profile pictures are uploaded through a server action (2 MB file limit plus form overhead).
     serverActions: { bodySizeLimit: "3mb" },

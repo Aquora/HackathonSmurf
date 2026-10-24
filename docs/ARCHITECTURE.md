@@ -344,6 +344,11 @@ fallbacks, latency targets, and release costs remain open.
 
 Implemented in `api/` at the product owner's request. Contract: `contracts/quest-api.md`.
 
+- **Hosting (2026-10-23, owner decision):** web app on Vercel (root directory `web`), quest API
+  on Render (`render.yaml`, Docker, Ohio), MongoDB on Atlas. The API is public but requires
+  `API_AUTH_TOKEN`; it logs into Snowflake as a dedicated read-only service user, not a person's
+  account. Steps: `docs/Deployment.md`. `docker-compose.yml` remains the single-server alternative.
+
 - **Driving only (2026-10-23, owner decision):** every quest is a driving route. The service sets
   `travelMethod` to `drive` (`QUEST_TRAVEL_METHOD`) after normalization, so Snowflake searches the
   drive radius and the planner plans car legs, even if the message asks to walk, bike or ride

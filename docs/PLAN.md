@@ -165,3 +165,7 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
   (standalone), `docker-compose.yml`, GitHub Actions CI, and a filled `docs/Deployment.md`.
   Verified locally in Docker (production mode, live Snowflake): healthy containers, 401 without
   token, 27/27 Playwright. 102 API and 54 web unit tests pass. Not deployed; provider undecided.
+- [x] 2026-10-23: Hosting selected: Vercel (web), Render (API, `render.yaml`), MongoDB Atlas.
+  Web builds for Vercel (no standalone output there; quest page `maxDuration = 120`). Verified
+  locally: Vercel-mode build, `SNOWFLAKE_PRIVATE_KEY` as one-line env text connects to Snowflake.
+  Not yet deployed; Render Blueprint and Vercel project not yet created.
