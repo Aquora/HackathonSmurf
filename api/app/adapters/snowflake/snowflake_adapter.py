@@ -9,10 +9,11 @@ import asyncio
 import json
 import logging
 import queue
+import re
 import threading
 from typing import Any, Protocol
 
-from ...config import Settings
+from ...config import ConfigError, Settings
 from ...domain.types import Preferences
 from ...errors import AppError, upstream_invalid, upstream_timeout, upstream_unavailable
 
@@ -29,12 +30,28 @@ class SqlExecutor(Protocol):
     async def aclose(self) -> None: ...
 
 
+_PEM_BLOCK = re.compile(r"-----BEGIN ([A-Z ]+)-----(.*?)-----END \1-----", re.DOTALL)
+
+
+def _normalize_pem(pem: str) -> str:
+    """Rebuild a PEM block however a host's form mangled it: literal \\n, line breaks turned into
+    spaces, surrounding quotes, or Windows line endings. Only whitespace is changed."""
+    text = pem.strip().strip("'\"").replace("\\n", "\n")
+    match = _PEM_BLOCK.search(text)
+    if not match:
+        raise ValueError("SNOWFLAKE_PRIVATE_KEY is not a PEM key (expected -----BEGIN ... KEY----- ... -----END ... KEY-----)")
+    label, body = match.group(1), "".join(match.group(2).split())
+    lines = [body[i : i + 64] for i in range(0, len(body), 64)]
+    return "\n".join([f"-----BEGIN {label}-----", *lines, f"-----END {label}-----", ""])
+
+
 def _der_private_key(pem: str, passphrase: str | None) -> bytes:
     """PEM key text from an environment variable -> unencrypted DER bytes for the connector."""
     from cryptography.hazmat.primitives import serialization  # installed with the connector
 
-    text = pem.strip().replace("\\n", "\n")  # hosts often store multi-line values with literal \n
-    key = serialization.load_pem_private_key(text.encode(), password=passphrase.encode() if passphrase else None)
+    key = serialization.load_pem_private_key(
+        _normalize_pem(pem).encode(), password=passphrase.encode() if passphrase else None
+    )
     return key.private_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PrivateFormat.PKCS8,
@@ -77,6 +94,20 @@ class SnowflakePoolExecutor:
         self._idle: queue.LifoQueue[Any] = queue.LifoQueue()
         self._slots = threading.BoundedSemaphore(settings.SNOWFLAKE_POOL_MAX)
         self._closed = False
+        # Parse a key given as text now, so a bad paste fails at startup with a clear message
+        # instead of as "upstream unavailable" on every request.
+        self._private_key_der: bytes | None = None
+        if settings.SNOWFLAKE_PRIVATE_KEY:
+            try:
+                self._private_key_der = _der_private_key(
+                    settings.SNOWFLAKE_PRIVATE_KEY.get_secret_value(),
+                    settings.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE.get_secret_value()
+                    if settings.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE
+                    else None,
+                )
+            except (ValueError, TypeError) as e:
+                # The message never contains key material.
+                raise ConfigError(f"SNOWFLAKE_PRIVATE_KEY could not be read: {e}") from None
 
     def _connect(self) -> Any:
         import snowflake.connector  # imported lazily: heavy, and unused in mock mode
@@ -95,12 +126,9 @@ class SnowflakePoolExecutor:
             "client_session_keep_alive": True,
             "session_parameters": {"STATEMENT_TIMEOUT_IN_SECONDS": s.SNOWFLAKE_QUERY_TIMEOUT_S},
         }
-        if s.SNOWFLAKE_PRIVATE_KEY:
+        if self._private_key_der is not None:
             kwargs["authenticator"] = "SNOWFLAKE_JWT"
-            kwargs["private_key"] = _der_private_key(
-                s.SNOWFLAKE_PRIVATE_KEY.get_secret_value(),
-                s.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE.get_secret_value() if s.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE else None,
-            )
+            kwargs["private_key"] = self._private_key_der
         elif s.SNOWFLAKE_PRIVATE_KEY_PATH:
             kwargs["authenticator"] = "SNOWFLAKE_JWT"
             kwargs["private_key_file"] = s.SNOWFLAKE_PRIVATE_KEY_PATH

@@ -41,8 +41,14 @@ def main() -> None:
             settings.DATA_PROVIDER,
         )
 
+    try:
+        app = build_app(settings)
+    except ConfigError as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
+
     uvicorn.run(
-        build_app(settings),
+        app,
         host=settings.HOST,
         port=settings.PORT,
         log_config=None,

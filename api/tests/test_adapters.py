@@ -172,12 +172,26 @@ class TestConfig:
         der = key.private_bytes(serialization.Encoding.DER, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
         assert _der_private_key(pem, None) == der
         assert _der_private_key(pem.replace("\n", "\\n"), None) == der  # one-line value with literal \n
+        assert _der_private_key(pem.replace("\n", " "), None) == der  # pasted into a one-line box: breaks -> spaces
+        assert _der_private_key(f'"{pem}"', None) == der  # wrapped in quotes
+        assert _der_private_key(pem.replace("\n", "\r\n"), None) == der  # Windows line endings
+        assert _der_private_key("  " + pem.replace("\n", "\n  ") + "  ", None) == der  # indented lines
         encrypted = key.private_bytes(
             serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.BestAvailableEncryption(b"pw")
         ).decode()
         assert _der_private_key(encrypted, "pw") == der
         s = load_settings(DATA_PROVIDER="snowflake", SNOWFLAKE_ACCOUNT="a", SNOWFLAKE_USER="u", SNOWFLAKE_PRIVATE_KEY=pem)
         assert s.SNOWFLAKE_PRIVATE_KEY is not None and pem not in repr(s)
+
+    def test_unreadable_private_key_fails_at_startup_without_leaking_it(self):
+        from app.adapters.snowflake.snowflake_adapter import SnowflakePoolExecutor
+
+        secret_body = "QUJDREVGR0hJSktMTU5PUA" * 4
+        for bad in (f"-----BEGIN PRIVATE KEY-----\n{secret_body}\n-----END PRIVATE KEY-----", "MIIEvQIBADANBg"):
+            s = load_settings(DATA_PROVIDER="snowflake", SNOWFLAKE_ACCOUNT="a", SNOWFLAKE_USER="u", SNOWFLAKE_PRIVATE_KEY=bad)
+            with pytest.raises(ConfigError, match="SNOWFLAKE_PRIVATE_KEY could not be read") as e:
+                SnowflakePoolExecutor(s)
+            assert secret_body not in str(e.value) and "MIIEvQIBADANBg" not in str(e.value)
 
     def test_requires_credentials_for_live_providers(self):
         with pytest.raises(ConfigError, match="SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_PATH"):
