@@ -5,10 +5,11 @@ services:
   - type: web
     name: local-quest-api
     runtime: docker
-    # Docker paths are relative to the repo root; rootDir limits auto-deploys to api/ changes.
+    # With rootDir set, Render resolves the Docker paths inside it (api/Dockerfile, context api/).
+    # rootDir also limits auto-deploys to changes under api/.
     rootDir: api
-    dockerfilePath: ./api/Dockerfile
-    dockerContext: ./api
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     region: ohio # next to Snowflake's AWS us-east-2
     plan: free # sleeps after ~15 min idle; use "starter" to stay awake for a demo
     healthCheckPath: /health
