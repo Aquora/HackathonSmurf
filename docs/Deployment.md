@@ -1,66 +1,110 @@
-# Hackathon deployment checklist
+# Deployment
 
-Status: planning checklist. No application, deployment target, commands, URLs, or
-rollback procedure have been verified. Fill in the exact steps and record results
-as the demo is built. This checklist covers the hackathon demo only.
+Status (2026-10-23): the code is deployment-ready and the full stack was verified **locally
+in Docker** (production mode, live Snowflake + Cortex): all containers healthy, the API
+rejected requests without its token, and all 27 Playwright tests passed against it. **No
+hosted deployment exists yet**, and no hosting provider has been selected. Steps marked
+*unverified* have not been run.
 
-## Setup
-- [ ] Confirm the event deadline, demo URL needs, and who can deploy: [TO FILL]
-- [ ] Confirm hosting and service accounts. Vercel (web) and Render (API) are
-  earlier suggestions, not selected providers; coordinate hosting with the chosen
-  component technologies in `ARCHITECTURE.md`: [TO FILL]
-- [ ] Select account database/auth service, configure backend access separately
-  from Snowflake access, and keep real records out of data/.
-- [ ] Record required environment variable **names and purposes** in example
-  configuration; store values in the selected providers' secret settings.
-- [ ] Verify input-default configuration (90 minutes, $30, no preference), selected
-  currency, start/time fallback policy, ranking version, model version, and routing
-  access. Record bounded request/repair settings.
-- [ ] Confirm which services and datasets are live, simulated, or unavailable.
-  Keep demo activity separate from real merchant metrics and redemptions.
-- [ ] Prepare the approved place data, its source/attribution, and a safe demo
-  account or session if the journey needs one.
-- [ ] Record the selected URL(s), deploying owner/role, and any cost limits:
-  [TO FILL]
+## What gets deployed
 
-## Deploy
-- [ ] Run the verified install, build, test, and AI evaluation commands recorded
-  in `../README.md` and `TESTING.md`; record actual results: [TO FILL]
-- [ ] Check configuration and data compatibility. If a schema change is needed,
-  document its order and recovery step before applying it: [TO FILL]
-- [ ] Deploy the API and web app using the selected provider's verified steps:
-  [TO FILL]
-- [ ] Record the deployed version/commit, model and prompt versions, deployment
-  time, and URL(s): [TO FILL]
+| Piece | Runs as | Needs |
+|---|---|---|
+| Web app (`web/`, Next.js) | `web/Dockerfile` (standalone Node server, port 3000) | MongoDB, the quest API, Google OAuth client |
+| Quest API (`api/`, FastAPI) | `api/Dockerfile` (port 8080, `GET /health`) | Snowflake key-pair login |
+| MongoDB | `mongo:7` container or a hosted cluster (e.g. MongoDB Atlas) | persistent storage |
+| Snowflake procedure + Cortex models | already deployed in account `LHXLXHN-WY63275` | nothing new; redeploy only after `snowflake/python` changes (`snowflake/scripts/lq.py deploy`) |
 
-## Smoke check
-- [ ] Confirm the deployed app loads and the API health check succeeds. Exact
-  URL and expected result: [TO FILL]
-- [ ] Complete the core journey: enter preferences, inspect applied defaults, retrieve
-  up to 10 candidates, generate and verify an AI-planned three-stop quest, inspect facts, complete a simulated check-in,
-  and see the passport and dashboard update.
-- [ ] Omit duration/budget/preferences and verify the configured defaults are shown;
-  verify an explicit zero budget is preserved and invalid supplied input is rejected.
-- [ ] Try an infeasible budget or time request and confirm it gives an honest
-  explanation. Check that simulated data and offers are visibly labeled.
-- [ ] Confirm no smoke check creates a real merchant redemption. Record the
-  browser/device, test data, results, and any failures: [TO FILL]
+Only the web app is public. Browsers never call the API: the Next.js server calls it with
+`Authorization: Bearer <token>`, and the API refuses `/v1/*` without that token
+(`API_AUTH_TOKEN`, required when `APP_ENV=production`) so strangers can't spend Snowflake credits.
+
+## Configuration (names only; values go in the host's secret settings)
+
+API (template: `.env.example`): `APP_ENV=production`, `API_AUTH_TOKEN` (>= 32 chars,
+`openssl rand -hex 32`), `AI_PROVIDER=snowflake`, `DATA_PROVIDER=snowflake`, `SNOWFLAKE_ACCOUNT`,
+`SNOWFLAKE_USER`, `SNOWFLAKE_ROLE=LQ_APP_RO`, `SNOWFLAKE_WAREHOUSE`, `SNOWFLAKE_DATABASE`,
+`SNOWFLAKE_SCHEMA`, and **either** `SNOWFLAKE_PRIVATE_KEY_PATH` (a mounted file) **or**
+`SNOWFLAKE_PRIVATE_KEY` (the PEM text; literal `\n` is fine), plus
+`SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` if the key is encrypted. Keep `SNOWFLAKE_QUERY_TIMEOUT_S=40`
+(route planning with `llama3.3-70b` takes ~20 s). Set `TRUST_PROXY=true` only behind a proxy.
+
+Web (template: `web/.env.example`): `AUTH_SECRET` (new value per environment, `npx auth secret`),
+`AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `DATABASE_URL`, `QUEST_API_URL`, `QUEST_API_TOKEN`
+(= the API's `API_AUTH_TOKEN`), `AUTH_TRUST_HOST=true` (anywhere except Vercel), and
+`TRUST_PROXY=true` behind a proxy so sign-in rate limits use the real client IP.
+
+Google Cloud Console: add `https://<your-domain>/api/auth/callback/google` to the OAuth
+client's authorized redirect URIs, or Google sign-in fails on the deployed site.
+
+## Option A: one server with Docker Compose (verified locally)
+
+Any Linux VM with Docker (e.g. a small cloud VM) runs the whole stack from `docker-compose.yml`.
+
+1. Install Docker, clone the repo, and copy the Snowflake `.p8` key onto the server
+   (outside the repo, `chmod 600`).
+2. Create `.env` from `.env.example` (production values above; `SNOWFLAKE_PRIVATE_KEY_PATH`
+   = the key's path on the server) and `web/.env.local` from `web/.env.example`.
+   Compose overrides `DATABASE_URL`, `QUEST_API_URL`, `QUEST_API_TOKEN`, and the key path.
+3. `docker compose up -d --build`, then `docker compose ps` until all three are `healthy`.
+4. Put HTTPS in front of port 3000 (e.g. Caddy: `your-domain { reverse_proxy localhost:3000 }`)
+   and set `TRUST_PROXY=true` for the web app. Auth.js cookies are `Secure` on HTTPS.
+5. Run the smoke check below.
+
+Verified 2026-10-23 on macOS Docker Desktop at commit `1420c2e` + these changes (port 3100):
+healthy containers, 401 without token, live quest in ~21 s, `/docs` hidden, 27/27 Playwright.
+
+## Option B: managed services (unverified)
+
+- **MongoDB Atlas** (or similar) for `DATABASE_URL`; allow the web host's outbound IPs.
+- **API on a Docker host** (e.g. Render, Railway, Fly.io): build `api/Dockerfile`, health
+  check path `/health`, secrets as above using `SNOWFLAKE_PRIVATE_KEY` (no files). It must
+  have a public URL unless the web app runs on the same provider's private network; the
+  token protects it either way.
+- **Web app** on the same Docker host (`web/Dockerfile`) or on Vercel (root directory `web`;
+  then omit `AUTH_TRUST_HOST`). Set `QUEST_API_URL` to the API's URL.
+
+Record the provider, URLs, and who can deploy here once chosen: [TO FILL]
+
+## Before every deploy
+
+1. CI is green on the commit (`.github/workflows/ci.yml`: API tests, web lint/build/typecheck/
+   unit tests with MongoDB, both Docker builds). To make it required, enable branch protection
+   for `main` in GitHub settings; the workflow file alone doesn't enforce it.
+2. No data migration is needed: MongoDB collections and indexes are created on first use
+   (`data/ACCOUNTS.md`); quests saved before Start/Finish existed still load.
+3. Note the commit SHA you deploy, the Snowflake `ranking_version` (`osm_hybrid_v6`), and the
+   prompt version (`2026-10-23.4`, `api/app/adapters/llm/model_adapter.py`).
+
+## Smoke check (after every deploy)
+
+1. `https://<domain>/` loads; the API health check (`GET /health` -> `{"status":"ok"}`) passes
+   on the host. `POST /v1/quests` without the token returns `401`.
+2. Register (or sign in with Google), plan "I want food and coffee": a live (not "Demo") route
+   from Cal Poly Pomona appears within ~40 s.
+3. Start quest, check in at every stop, Finish quest; XP and the quest log update on Profile.
+4. A $0 request returns the "nothing fits" explanation, not a fake route.
+Record the date, URL, commit, and results under **Result**.
 
 ## Rollback
-- [ ] Record a known working deployment/version and how to restore it for each
-  selected provider before the demo: [TO FILL]
-- [ ] If the deployed journey fails, stop using the broken URL and restore the
-  known working version with the provider's verified steps: [TO FILL]
-- [ ] If a data or configuration change caused the failure, use only a documented
-  recovery step. Record what changed and whether the demo needs a clearly
-  labeled fixture or recording instead: [TO FILL]
-- [ ] Re-run the health check and core journey after restoration; record the
-  result and the version shown to judges: [TO FILL]
+
+- **Docker Compose:** `git checkout <last good SHA> && docker compose up -d --build`. MongoDB
+  data is in the `mongo-data` volume and survives (`docker compose down -v` would delete it).
+- **Managed hosts:** redeploy the previous successful deploy from the provider's dashboard.
+- **Snowflake ranking:** check out the previous `snowflake/python/lq_snowflake` files and run
+  `snowflake/.venv/bin/python snowflake/scripts/lq.py deploy` (code only; data untouched).
+- Re-run the smoke check after any rollback.
+
+## Costs and limits
+
+Snowflake: warehouse `LQ_WH` (XS, 60 s auto-suspend, 10-credit resource monitor) plus Cortex
+`AI_COMPLETE`/`AI_EMBED` per quest (each quest makes 2-3 model calls). Limits: 10 quests per
+player per 10 minutes (web) and `RATE_LIMIT_PER_MINUTE` per IP (API). Rate limits are in memory,
+so they reset on restart and aren't shared across multiple instances.
 
 ## Result
-Record who ran this checklist, when, the deployed version, checks that passed,
-checks that failed or were skipped, and the demo URL. Do not describe a planned
-or simulated step as verified.
+Record who deployed, when, the commit, the URL, checks that passed or failed, and the demo
+URL. Do not describe a planned or simulated step as verified. [TO FILL]
 
 ## Demo and submission
 

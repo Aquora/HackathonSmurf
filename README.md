@@ -96,6 +96,13 @@ end-to-end with both servers running:
 Verified locally on 2026-10-23 in mock mode (MongoDB in Docker). Live Snowflake/Cortex was verified
 earlier by the Snowflake owner but not re-run with this integration. Nothing is deployed.
 
+## Deploy
+Production-like stack in Docker (MongoDB + API + web; only the web app is published):
+add `API_AUTH_TOKEN` to `.env` (`openssl rand -hex 32`), then `docker compose up -d --build`.
+Hosting options, configuration, smoke checks, and rollback: [docs/Deployment.md](docs/Deployment.md).
+CI (`.github/workflows/ci.yml`) runs API tests, web lint/build/typecheck/unit tests, and both
+Docker builds on every push and pull request.
+
 ## License
 The application code is released under the [MIT License](LICENSE)
 (Copyright (c) 2026 Local Quest contributors).

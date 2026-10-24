@@ -32,8 +32,10 @@ def make_service(extractor=None, locations=None, planner=None, mock=False, seed=
     )
 
 
-def client(service=None, rate_limit=100) -> TestClient:
-    app = create_app(service or make_service(), cors_origins=["http://localhost:3000"], rate_limit_per_minute=rate_limit)
+def client(service=None, rate_limit=100, api_token=None) -> TestClient:
+    app = create_app(
+        service or make_service(), cors_origins=["http://localhost:3000"], rate_limit_per_minute=rate_limit, api_token=api_token
+    )
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -221,6 +223,16 @@ class TestHttp:
         assert result.preferences.travelMethod == "drive"
         assert locations.find_locations.await_args.args[0].travelMethod == "drive"
         assert planner.plan_route.await_args.args[0].preferences.travelMethod == "drive"
+
+    def test_api_token_guards_quests_but_not_health(self):
+        token = "s" * 40
+        guarded = client(api_token=token)
+        assert guarded.get("/health").status_code == 200
+        for headers in ({}, {"authorization": "Bearer wrong"}, {"authorization": token}):
+            res = guarded.post("/v1/quests", json=BODY, headers=headers)
+            assert res.status_code == 401 and res.json()["error"]["code"] == "UNAUTHORIZED"
+        assert guarded.post("/v1/quests", json=BODY, headers={"authorization": f"Bearer {token}"}).status_code == 200
+        assert client().post("/v1/quests", json=BODY).status_code == 200  # no token configured: open (development)
 
     def test_malformed_json(self):
         res = client().post("/v1/quests", content="{bad", headers={"content-type": "application/json"})

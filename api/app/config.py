@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = Field(30, ge=1)
     QUEST_TIMEZONE: str = "America/Los_Angeles"
     ALLOW_MOCK_IN_PRODUCTION: bool = False
+    # Shared secret the web server sends as "Authorization: Bearer <token>" on /v1/*. Required in
+    # production so strangers can't spend Snowflake credits; optional in development.
+    API_AUTH_TOKEN: SecretStr | None = None
 
     # snowflake = Cortex AI_COMPLETE with SNOWFLAKE_AI_MODEL (a llama model); mock = offline regex/fixtures.
     AI_PROVIDER: Literal["snowflake", "mock"] = "mock"
@@ -43,6 +46,9 @@ class Settings(BaseSettings):
     SNOWFLAKE_USER: str | None = None
     SNOWFLAKE_PASSWORD: SecretStr | None = None
     SNOWFLAKE_PRIVATE_KEY_PATH: str | None = None
+    # The same key as PEM text, for hosts that only offer environment variables (escaped "\n" is fine).
+    # Takes precedence over SNOWFLAKE_PRIVATE_KEY_PATH.
+    SNOWFLAKE_PRIVATE_KEY: SecretStr | None = None
     SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: SecretStr | None = None
     SNOWFLAKE_WAREHOUSE: str | None = None
     SNOWFLAKE_DATABASE: str | None = None
@@ -87,8 +93,12 @@ class Settings(BaseSettings):
         missing: list[str] = []
         if self.DATA_PROVIDER == "snowflake" or self.AI_PROVIDER == "snowflake":
             missing += [k for k in ("SNOWFLAKE_ACCOUNT", "SNOWFLAKE_USER") if getattr(self, k) is None]
-            if self.SNOWFLAKE_PASSWORD is None and self.SNOWFLAKE_PRIVATE_KEY_PATH is None:
-                missing.append("SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_PATH")
+            if self.SNOWFLAKE_PASSWORD is None and self.SNOWFLAKE_PRIVATE_KEY_PATH is None and self.SNOWFLAKE_PRIVATE_KEY is None:
+                missing.append("SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_PATH or SNOWFLAKE_PRIVATE_KEY")
+        if self.APP_ENV == "production" and self.API_AUTH_TOKEN is None:
+            missing.append("API_AUTH_TOKEN (required in production)")
+        if self.API_AUTH_TOKEN is not None and len(self.API_AUTH_TOKEN.get_secret_value()) < 32:
+            raise ValueError("API_AUTH_TOKEN must be at least 32 characters (e.g. openssl rand -hex 32)")
         if missing:
             raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
         if self.APP_ENV == "production" and not self.ALLOW_MOCK_IN_PRODUCTION and self.uses_mock:

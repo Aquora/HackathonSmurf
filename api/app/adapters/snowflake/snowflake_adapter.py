@@ -29,6 +29,19 @@ class SqlExecutor(Protocol):
     async def aclose(self) -> None: ...
 
 
+def _der_private_key(pem: str, passphrase: str | None) -> bytes:
+    """PEM key text from an environment variable -> unencrypted DER bytes for the connector."""
+    from cryptography.hazmat.primitives import serialization  # installed with the connector
+
+    text = pem.strip().replace("\\n", "\n")  # hosts often store multi-line values with literal \n
+    key = serialization.load_pem_private_key(text.encode(), password=passphrase.encode() if passphrase else None)
+    return key.private_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+
 class SnowflakeLocationProvider:
     def __init__(self, executor: SqlExecutor, procedure: str, timeout_s: int) -> None:
         self._executor = executor
@@ -82,7 +95,13 @@ class SnowflakePoolExecutor:
             "client_session_keep_alive": True,
             "session_parameters": {"STATEMENT_TIMEOUT_IN_SECONDS": s.SNOWFLAKE_QUERY_TIMEOUT_S},
         }
-        if s.SNOWFLAKE_PRIVATE_KEY_PATH:
+        if s.SNOWFLAKE_PRIVATE_KEY:
+            kwargs["authenticator"] = "SNOWFLAKE_JWT"
+            kwargs["private_key"] = _der_private_key(
+                s.SNOWFLAKE_PRIVATE_KEY.get_secret_value(),
+                s.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE.get_secret_value() if s.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE else None,
+            )
+        elif s.SNOWFLAKE_PRIVATE_KEY_PATH:
             kwargs["authenticator"] = "SNOWFLAKE_JWT"
             kwargs["private_key_file"] = s.SNOWFLAKE_PRIVATE_KEY_PATH
             if s.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE:

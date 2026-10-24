@@ -80,12 +80,18 @@ export function questApiBaseUrl() {
   return (process.env.QUEST_API_URL || "http://localhost:8080").replace(/\/+$/, "");
 }
 
+/** QUEST_API_TOKEN must equal the API's API_AUTH_TOKEN (required when the API runs in production). */
+export function questApiHeaders(): Record<string, string> {
+  const token = process.env.QUEST_API_TOKEN;
+  return token ? { "content-type": "application/json", authorization: `Bearer ${token}` } : { "content-type": "application/json" };
+}
+
 export async function requestQuestRoute(message: string, fetchImpl: typeof fetch = fetch): Promise<QuestApiResult> {
   let res: Response;
   try {
     res = await fetchImpl(`${questApiBaseUrl()}/v1/quests`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: questApiHeaders(),
       body: JSON.stringify({ message }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       cache: "no-store",

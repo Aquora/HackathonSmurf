@@ -12,6 +12,8 @@ from app.domain.ports import RoutePlanInput
 from app.domain.types import DEFAULT_PREFERENCES
 from app.errors import AppError
 
+TOKEN = "t" * 40
+
 
 def test_extract_json():
     assert extract_json('{"a":1}') == {"a": 1}
@@ -134,7 +136,7 @@ class TestConfig:
     @pytest.fixture(autouse=True)
     def clean_env(self, monkeypatch, tmp_path):
         monkeypatch.chdir(tmp_path)  # no .env file
-        for key in ("APP_ENV", "AI_PROVIDER", "DATA_PROVIDER", "QUEST_TIMEZONE", "CORS_ORIGINS"):
+        for key in ("APP_ENV", "AI_PROVIDER", "DATA_PROVIDER", "QUEST_TIMEZONE", "CORS_ORIGINS", "API_AUTH_TOKEN"):
             monkeypatch.delenv(key, raising=False)
 
     def test_defaults_to_mock(self):
@@ -147,8 +149,35 @@ class TestConfig:
 
     def test_refuses_mock_in_production(self):
         with pytest.raises(ConfigError, match="disabled in production"):
-            load_settings(APP_ENV="production")
-        assert load_settings(APP_ENV="production", ALLOW_MOCK_IN_PRODUCTION=True).APP_ENV == "production"
+            load_settings(APP_ENV="production", API_AUTH_TOKEN=TOKEN)
+        assert load_settings(APP_ENV="production", ALLOW_MOCK_IN_PRODUCTION=True, API_AUTH_TOKEN=TOKEN).APP_ENV == "production"
+
+    def test_production_requires_a_long_api_token(self):
+        with pytest.raises(ConfigError, match="API_AUTH_TOKEN"):
+            load_settings(APP_ENV="production", ALLOW_MOCK_IN_PRODUCTION=True)
+        with pytest.raises(ConfigError, match="at least 32 characters"):
+            load_settings(API_AUTH_TOKEN="short")
+        assert load_settings().API_AUTH_TOKEN is None  # optional in development
+
+    def test_private_key_can_come_from_an_environment_variable(self):
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        from app.adapters.snowflake.snowflake_adapter import _der_private_key
+
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        pem = key.private_bytes(
+            serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()
+        ).decode()
+        der = key.private_bytes(serialization.Encoding.DER, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
+        assert _der_private_key(pem, None) == der
+        assert _der_private_key(pem.replace("\n", "\\n"), None) == der  # one-line value with literal \n
+        encrypted = key.private_bytes(
+            serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.BestAvailableEncryption(b"pw")
+        ).decode()
+        assert _der_private_key(encrypted, "pw") == der
+        s = load_settings(DATA_PROVIDER="snowflake", SNOWFLAKE_ACCOUNT="a", SNOWFLAKE_USER="u", SNOWFLAKE_PRIVATE_KEY=pem)
+        assert s.SNOWFLAKE_PRIVATE_KEY is not None and pem not in repr(s)
 
     def test_requires_credentials_for_live_providers(self):
         with pytest.raises(ConfigError, match="SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_PATH"):

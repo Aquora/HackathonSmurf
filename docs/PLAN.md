@@ -160,3 +160,8 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
   shows a friend's Figma player card with stats and badges (friends only), friend count on
   cards, and remove friend. Friend cards use the same quest-based progress as `/profile`.
   Unit and Playwright tests pass against a disposable in-memory MongoDB; not deployed.
+- [x] 2026-10-23: Deployment-ready. API requires `API_AUTH_TOKEN` in production (web sends it as
+  `QUEST_API_TOKEN`) and accepts the Snowflake key as `SNOWFLAKE_PRIVATE_KEY` text; web Dockerfile
+  (standalone), `docker-compose.yml`, GitHub Actions CI, and a filled `docs/Deployment.md`.
+  Verified locally in Docker (production mode, live Snowflake): healthy containers, 401 without
+  token, 27/27 Playwright. 102 API and 54 web unit tests pass. Not deployed; provider undecided.

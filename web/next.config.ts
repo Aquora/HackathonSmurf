@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   // Native password-hashing module; load it from node_modules at runtime instead of bundling.
   serverExternalPackages: ["@node-rs/argon2"],
   poweredByHeader: false,
+  // Self-contained server in .next/standalone for the Docker image (see web/Dockerfile).
+  output: "standalone",
   experimental: {
     // Profile pictures are uploaded through a server action (2 MB file limit plus form overhead).
     serverActions: { bodySizeLimit: "3mb" },

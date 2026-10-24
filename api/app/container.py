@@ -71,4 +71,5 @@ def build_app(settings: Settings) -> FastAPI:
         rate_limit_per_minute=settings.RATE_LIMIT_PER_MINUTE,
         docs_enabled=settings.APP_ENV != "production",
         on_shutdown=wiring.close,
+        api_token=settings.API_AUTH_TOKEN.get_secret_value() if settings.API_AUTH_TOKEN else None,
     )

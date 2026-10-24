@@ -29,6 +29,25 @@ function fakeFetch(status: number, body: unknown, headers: Record<string, string
 }
 
 describe("requestQuestRoute", () => {
+  it("sends QUEST_API_TOKEN as a bearer token only when it is set", async () => {
+    const seen: (string | null)[] = [];
+    const recording = (async (_url: string | URL | Request, init?: RequestInit) => {
+      seen.push(new Headers(init?.headers).get("authorization"));
+      return new Response(JSON.stringify(ROUTE), { status: 200 });
+    }) as typeof fetch;
+    const previous = process.env.QUEST_API_TOKEN;
+    try {
+      delete process.env.QUEST_API_TOKEN;
+      await requestQuestRoute("coffee", recording);
+      process.env.QUEST_API_TOKEN = "secret-token";
+      await requestQuestRoute("coffee", recording);
+    } finally {
+      if (previous === undefined) delete process.env.QUEST_API_TOKEN;
+      else process.env.QUEST_API_TOKEN = previous;
+    }
+    expect(seen).toEqual([null, "Bearer secret-token"]);
+  });
+
   it("returns a parsed route on 200", async () => {
     const result = await requestQuestRoute("coffee", fakeFetch(200, ROUTE));
     expect(result).toEqual({ ok: true, route: ROUTE });

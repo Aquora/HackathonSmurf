@@ -1,3 +1,4 @@
+import hmac
 import logging
 import re
 import time
@@ -113,6 +114,7 @@ def create_app(
     rate_limit_per_minute: int,
     docs_enabled: bool = True,
     on_shutdown: Callable[[], Awaitable[None]] | None = None,
+    api_token: str | None = None,
 ) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -135,6 +137,12 @@ def create_app(
         incoming = request.headers.get("x-request-id", "")
         request_id = incoming if _REQUEST_ID.match(incoming) else uuid.uuid4().hex
         request.state.request_id = request_id
+
+        # Only the web server (which holds API_AUTH_TOKEN) may generate quests; /health stays open.
+        if api_token and request.url.path.startswith("/v1/") and request.method != "OPTIONS":
+            supplied = request.headers.get("authorization", "")
+            if not hmac.compare_digest(supplied.encode(), f"Bearer {api_token}".encode()):
+                return _error(401, "UNAUTHORIZED", "Missing or invalid API token.", request_id)
 
         if request.url.path != "/health":
             client = request.client.host if request.client else "unknown"
@@ -168,7 +176,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=cors_origins,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["content-type", "x-request-id"],
+        allow_headers=["content-type", "x-request-id", "authorization"],
         expose_headers=["x-request-id"],
     )
     app.add_middleware(BodyLimitMiddleware, limit=BODY_LIMIT_BYTES)
