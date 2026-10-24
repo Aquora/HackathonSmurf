@@ -6,6 +6,7 @@ See ../snowflake/README.md (LOCAL_QUEST.APP.FIND_QUEST_LOCATIONS).
 """
 
 import asyncio
+import base64
 import json
 import logging
 import queue
@@ -30,17 +31,32 @@ class SqlExecutor(Protocol):
     async def aclose(self) -> None: ...
 
 
+_BASE64 = re.compile(r"[A-Za-z0-9+/]{100,}={0,2}")
 _PEM_BLOCK = re.compile(r"-----BEGIN ([A-Z ]+)-----(.*?)-----END \1-----", re.DOTALL)
 
 
 def _normalize_pem(pem: str) -> str:
     """Rebuild a PEM block however a host's form mangled it: literal \\n, line breaks turned into
-    spaces, surrounding quotes, or Windows line endings. Only whitespace is changed."""
+    spaces, surrounding quotes, Windows line endings, missing BEGIN/END lines, or the whole .p8
+    file base64-encoded onto one line. Only the framing changes; the key bytes are untouched."""
     text = pem.strip().strip("'\"").replace("\\n", "\n")
     match = _PEM_BLOCK.search(text)
-    if not match:
-        raise ValueError("SNOWFLAKE_PRIVATE_KEY is not a PEM key (expected -----BEGIN ... KEY----- ... -----END ... KEY-----)")
-    label, body = match.group(1), "".join(match.group(2).split())
+    if match:
+        label, body = match.group(1), "".join(match.group(2).split())
+    else:
+        compact = "".join(text.split())
+        if not _BASE64.fullmatch(compact):
+            raise ValueError(
+                "SNOWFLAKE_PRIVATE_KEY is not a PEM key (expected -----BEGIN ... KEY----- ... -----END ... KEY-----, "
+                "or the .p8 file as one line of base64)"
+            )
+        try:  # the whole .p8 file base64-encoded onto one line (`base64 -i key.p8`)
+            decoded = base64.b64decode(compact, validate=True).decode("ascii")
+        except (ValueError, UnicodeDecodeError):
+            decoded = ""
+        if "-----BEGIN" in decoded:
+            return _normalize_pem(decoded)
+        label, body = "PRIVATE KEY", compact  # only the key body, without the BEGIN/END lines
     lines = [body[i : i + 64] for i in range(0, len(body), 64)]
     return "\n".join([f"-----BEGIN {label}-----", *lines, f"-----END {label}-----", ""])
 

@@ -1,3 +1,4 @@
+import base64
 import json
 from unittest.mock import AsyncMock
 
@@ -176,6 +177,9 @@ class TestConfig:
         assert _der_private_key(f'"{pem}"', None) == der  # wrapped in quotes
         assert _der_private_key(pem.replace("\n", "\r\n"), None) == der  # Windows line endings
         assert _der_private_key("  " + pem.replace("\n", "\n  ") + "  ", None) == der  # indented lines
+        body = "".join(pem.strip().splitlines()[1:-1])
+        assert _der_private_key(body, None) == der  # BEGIN/END lines lost
+        assert _der_private_key(base64.b64encode(pem.encode()).decode(), None) == der  # whole file as one base64 line
         encrypted = key.private_bytes(
             serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.BestAvailableEncryption(b"pw")
         ).decode()
