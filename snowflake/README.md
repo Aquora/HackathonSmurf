@@ -35,6 +35,15 @@ category estimate, not the place's price. Categories with no sensible visit spen
 (car repair, storage, banks, phone shops) have no estimate, so `estimatedCost` is
 null and the API won't use them as stops. The table can be edited with `MERGE`.
 
+**Chains:** each `PLACE` row has `is_chain` and `chain_reason`, set during the load
+(`sql/04_load.sql`). A place counts as a chain if it has an OSM `brand` or `brand:wikidata`
+tag (`brand_tag`), if its name matches another place's brand (`brand_name`), or if the same
+name appears at more than one place (`repeated_name`). Names are compared in lowercase with
+punctuation and spaces removed. This is a label only: `FIND_QUEST_LOCATIONS` doesn't filter on it yet.
+On the 2026-10-23 Pomona extract, 51 of 97 places have a brand tag. Most are food, such as
+McDonald's, Subway and Starbucks. Art, parks and the library are local. To apply it to the deployed
+account, run `lq.py setup` (adds the columns) and then `lq.py load` (re-fetches and flags).
+
 **Addresses:** the same OSM extract supplies street addresses (house number + street)
 to geocode the request's address inside Snowflake. This trial account blocks all
 outside network access ("External access is not supported for trial accounts"), so
