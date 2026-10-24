@@ -4,6 +4,7 @@ import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
 import { BottomNav } from "@/components/BottomNav/BottomNav";
 import { PlayerProfileView } from "@/features/profile/PlayerProfileView";
+import { countFriends } from "@/lib/friends";
 import { getPlayerProfile } from "@/lib/profile";
 import { getPlayerProgress, listQuests } from "@/lib/quests";
 
@@ -19,11 +20,11 @@ export default async function ProfilePage() {
 
   // Stats and badges are computed from the player's simulated check-ins.
   const userId = new ObjectId(session.user.id);
-  const [progress, quests] = await Promise.all([getPlayerProgress(userId), listQuests(userId)]);
+  const [progress, quests, friendsCount] = await Promise.all([getPlayerProgress(userId), listQuests(userId), countFriends(userId)]);
 
   return (
     <main className="profile-page">
-      <PlayerProfileView profile={profile} progress={progress} quests={quests} mode="self" />
+      <PlayerProfileView profile={profile} progress={progress} quests={quests} friendsCount={friendsCount} mode="self" />
       <BottomNav active="/profile" />
     </main>
   );

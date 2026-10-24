@@ -113,7 +113,7 @@ test("send requests by username or name, then accept and cancel them", async ({ 
   await expect(popupStatus(alexPage)).toHaveText("You're already friends with Sam Rivera.");
 });
 
-test("clicking a friend opens their read-only player card; non-friends get a 404", async ({ browser }) => {
+test("clicking a friend opens their read-only player card; non-friends see a locked card", async ({ browser }) => {
   const id = `card_${Date.now().toString(36)}`;
   const mongo = await new MongoClient(databaseUrl!).connect();
   const db = mongo.db();
@@ -165,7 +165,7 @@ test("clicking a friend opens their read-only player card; non-friends get a 404
   await page.locator(".friend-row__link", { hasText: "Maya Chen" }).click();
   await expect(page).toHaveURL((url) => url.pathname === `/friends/${friend.toHexString()}`);
 
-  await expect(page.getByRole("heading", { name: "Player card" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Maya Chen's card" })).toBeVisible();
   await expect(page.locator(".player-banner__name")).toHaveText("Maya Chen");
   await expect(page.getByText(`@${id}_friend`)).toBeVisible();
   await expect(page.getByText("Joined June 2026")).toBeVisible();
@@ -180,8 +180,13 @@ test("clicking a friend opens their read-only player card; non-friends get a 404
   await page.getByRole("link", { name: "← Back to friends" }).click();
   await expect(page).toHaveURL((url) => url.pathname === "/friends");
 
-  // Not a friend, or no such player: same 404.
-  for (const other of [stranger.toHexString(), "000000000000000000000000", "not-an-id"]) {
+  // Not a friend: the card is locked (no stats), with "+ Add friend".
+  await page.goto(`/friends/${stranger.toHexString()}`);
+  await expect(page.getByText("Add them as a friend to see their stats and badges.")).toBeVisible();
+  await expect(page.locator(".profile-stat")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add Noah Williams as a friend" })).toBeVisible();
+  // No such player: 404.
+  for (const other of ["000000000000000000000000", "not-an-id"]) {
     const response = await page.goto(`/friends/${other}`);
     expect(response?.status()).toBe(404);
   }

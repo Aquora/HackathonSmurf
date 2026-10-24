@@ -89,8 +89,9 @@ test("friends see each other's stats; others only see a locked card", async ({ b
   await expect(stat(rileyPage, "Places found")).toHaveText("3");
   await expect(stat(rileyPage, "Day streak")).toHaveText("1");
   await expect(rileyPage.getByText("80 XP")).toBeVisible();
-  await expect(rileyPage.getByText("1/4")).toBeVisible();
-  await expect(rileyPage.locator(".profile-badge--unlocked")).toHaveText(/First steps/);
+  // "A new beginning" (every account) + "First steps" (Casey's finished quest).
+  await expect(rileyPage.getByText("2/5")).toBeVisible();
+  await expect(rileyPage.locator(".profile-badge--unlocked", { hasText: "First steps" })).toHaveCount(1);
   await expect(rileyPage.locator(".profile-badge--locked")).toHaveCount(3);
 
   // Own profile shows the friend count too.

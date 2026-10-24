@@ -66,7 +66,7 @@ export default async function FriendsPage() {
             </h2>
             <ul className="friend-list">
               {incoming.map((player) => (
-                <PlayerRow key={player.requestId} player={player}>
+                <PlayerRow key={player.requestId} player={player} href={`/friends/${player.id}`}>
                   <form action={respondToFriendRequest}>
                     <input type="hidden" name="requestId" value={player.requestId} />
                     <button type="submit" name="decision" value="accept" className="small-button small-button--primary">
@@ -107,7 +107,7 @@ export default async function FriendsPage() {
             </h2>
             <ul className="friend-list">
               {outgoing.map((player) => (
-                <PlayerRow key={player.requestId} player={player}>
+                <PlayerRow key={player.requestId} player={player} href={`/friends/${player.id}`}>
                   <span className="friend-row__pending">Pending</span>
                   <form action={cancelFriendRequest}>
                     <input type="hidden" name="requestId" value={player.requestId} />

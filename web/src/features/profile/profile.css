@@ -305,9 +305,11 @@
   padding-bottom: 24px;
 }
 
+/* Four badges per row; more wrap onto the next row. */
 .profile-badges__list {
-  display: flex;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px 8px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -315,12 +317,11 @@
 
 .profile-badge {
   display: flex;
-  flex: 1 0 0;
   flex-direction: column;
   align-items: center;
   gap: 1px;
   min-width: 0;
-  white-space: nowrap;
+  text-align: center;
 }
 
 .profile-badge__emblem {
@@ -343,6 +344,13 @@
 .profile-badge__title {
   font-size: 18px;
   line-height: 20px;
+}
+
+/* 40x40 badge art inside the 64x60 emblem (Figma "Pixel achievement"). */
+.profile-badge__art {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 
 .profile-badge__milestone {
@@ -371,7 +379,7 @@
   color: var(--color-muted);
 }
 
-.profile-badge--unlocked .profile-badge__emblem {
+.profile-badge--unlocked .profile-badge__emblem:not(:has(.profile-badge__art)) {
   background: var(--color-gold);
   font-size: 32px;
   color: var(--color-link);
@@ -449,4 +457,11 @@
 .player-banner__back:focus-visible {
   outline: 3px solid var(--color-gold);
   outline-offset: 2px;
+}
+
+/* "2/5" next to "Badge collection". */
+.profile-badges__count {
+  font-family: var(--font-body);
+  font-size: 20px;
+  color: var(--color-muted);
 }

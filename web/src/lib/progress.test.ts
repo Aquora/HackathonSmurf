@@ -29,10 +29,10 @@ describe("dayStreak", () => {
 });
 
 describe("summarizeProgress", () => {
-  it("starts at level 1 with everything locked", () => {
+  it("starts at level 1 with only the account badge unlocked", () => {
     const p = summarizeProgress({ questsDone: 0, checkIns: [] }, NOW);
     expect(p).toMatchObject({ xp: 0, level: 1, levelPercent: 0, placesFound: 0, dayStreak: 0 });
-    expect(p.badges.every((b) => !b.unlocked)).toBe(true);
+    expect(p.badges.filter((b) => b.unlocked).map((b) => b.title)).toEqual(["A new beginning"]);
   });
 
   it("awards XP per check-in and per finished quest, and counts places once", () => {

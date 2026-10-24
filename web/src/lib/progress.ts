@@ -13,6 +13,8 @@ export interface CheckIn {
 }
 
 export interface Badge {
+  /** Stable key, e.g. for picking the badge's picture. */
+  id: string;
   title: string;
   milestone: string;
   unlocked: boolean;
@@ -70,10 +72,12 @@ export function summarizeProgress(input: { questsDone: number; checkIns: CheckIn
     placesFound,
     dayStreak: streak,
     badges: [
-      { title: "First steps", milestone: "1st quest", unlocked: input.questsDone >= 1 },
-      { title: "Hidden gem", milestone: "10 places", unlocked: placesFound >= 10 },
-      { title: "On a roll", milestone: "7-day streak", unlocked: streak >= 7 },
-      { title: "Town hero", milestone: "50 quests", unlocked: input.questsDone >= 50 },
+      // Earned by creating an account, so every player has it.
+      { id: "new-beginning", title: "A new beginning", milestone: "At Cal Poly Pomona", unlocked: true },
+      { id: "first-steps", title: "First steps", milestone: "1st quest", unlocked: input.questsDone >= 1 },
+      { id: "hidden-gem", title: "Hidden gem", milestone: "10 places", unlocked: placesFound >= 10 },
+      { id: "on-a-roll", title: "On a roll", milestone: "7-day streak", unlocked: streak >= 7 },
+      { id: "town-hero", title: "Town hero", milestone: "50 quests", unlocked: input.questsDone >= 50 },
     ],
   };
 }
