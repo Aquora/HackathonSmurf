@@ -27,11 +27,9 @@ services:
         value: LHXLXHN-WY63275
       - key: SNOWFLAKE_USER
         sync: false
-      # Paste the .p8 file's full text (BEGIN ... END lines included).
+      # Paste the .p8 file's full text (BEGIN ... END lines included). The LQ_API_RENDER key is
+      # unencrypted; for an encrypted key, also add SNOWFLAKE_PRIVATE_KEY_PASSPHRASE in the dashboard.
       - key: SNOWFLAKE_PRIVATE_KEY
-        sync: false
-      # Only if the key is encrypted; otherwise leave it empty.
-      - key: SNOWFLAKE_PRIVATE_KEY_PASSPHRASE
         sync: false
       - key: SNOWFLAKE_ROLE
         value: LQ_APP_RO
