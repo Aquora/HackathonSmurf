@@ -64,6 +64,7 @@ def _evaluate(row, request, radius, weekly):
     _, closes_at = max(intervals, key=lambda iv: longest_open_seconds(
         [iv], request.window_start, request.window_end))
     dist_m = float(row["dist_m"])
+    row = _demote_drink_only_food_match(row)
     sim = float(row["sim"]) if row.get("sim") is not None and request.interests else 0.0
     closeness = max(0.0, 1.0 - dist_m / radius) if radius > 0 else 0.0
     score = round(settings.W_SIM * sim + settings.W_DIST * closeness, 6)
@@ -97,6 +98,18 @@ def _evaluate(row, request, radius, weekly):
         "attribution": settings.ATTRIBUTION,
         "match_reasons": match_reasons(row, request, tags, dist_m),
     }
+
+
+def _demote_drink_only_food_match(row):
+    """A juice bar or boba shop is not a "food" match just because OSM calls it fast food."""
+    interest = (row.get("sim_interest") or "").lower()
+    if row.get("sim") is None or interest not in settings.FOOD_INTERESTS:
+        return row
+    tags = {str(t).lower() for t in (row.get("tags") or [])}
+    cuisines = tags - settings.GENERIC_FOOD_TAGS
+    if not (cuisines & settings.DRINK_ONLY_TAGS) or (cuisines - settings.DRINK_ONLY_TAGS):
+        return row  # no drink-only cuisine, or it also has a food cuisine (e.g. juice + sandwich)
+    return {**row, "sim": float(row["sim"]) * settings.DRINK_ONLY_FOOD_FACTOR}
 
 
 def match_reasons(row, request, tags, dist_m):

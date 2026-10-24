@@ -60,6 +60,21 @@ class TestNormalizePreferences:
         assert normalize_preferences({"desiredTime": True}).desiredTime == 90
         assert normalize_preferences({"locationPreference": "x" * 500}).locationPreference == "random"
 
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            ("coffee and art", "coffee, art"),
+            ("food, coffee", "food, coffee"),
+            ("pizza or hot dogs", "pizza, hot dogs"),
+            ("Food & drinks / dessert; boba", "Food, drinks, dessert, boba"),
+            ("coffee, Coffee and coffee", "coffee"),
+            ("sandwiches and candy", "sandwiches, candy"),  # whole words only
+            (" , and ", "random"),
+        ],
+    )
+    def test_splits_interests_for_snowflake(self, raw, expected):
+        assert normalize_preferences({"locationPreference": raw}).locationPreference == expected
+
     def test_unknown_travel_method_passes_through_lowercased(self):
         assert normalize_preferences({"travelMethod": "Scooter"}).travelMethod == "scooter"
 
@@ -72,6 +87,30 @@ class TestParseLocations:
         ]
         result = parse_locations(json.dumps({"locations": rows}))
         assert result.ok and result.locations == MOCK_LOCATIONS
+
+    def test_keeps_snowflake_facts_for_the_planner_only(self):
+        rows = [l.model_dump() for l in MOCK_LOCATIONS]
+        rows[0] |= {
+            "tags": ["cafe", "coffee shop", 42, "  "],
+            "match_reasons": ["tag 'cafe' related to interest 'coffee'", "~380 m straight-line from start"],
+            "rank": 2, "distance_m": 1609, "within_radius": True,
+        }  # fmt: skip
+        rows[1] |= {"tags": "not a list", "match_reasons": ["~4000 m straight-line from start"], "rank": True, "distance_m": "far"}
+        rows[2] |= {"tags": ["x" * 500] * 20}
+        result = parse_locations(rows)
+        assert result.ok
+        assert all(set(loc.model_dump()) == {"name", "address", "closingTime", "estimatedCost"} for loc in result.locations)
+
+        first = result.facts[location_key(rows[0]["name"], rows[0]["address"])]
+        assert first.categories == ["cafe", "coffee shop"]
+        assert first.preference_matches == ["tag 'cafe' related to interest 'coffee'"]
+        assert (first.rank, first.distance_miles, first.within_range) == (2, 1.0, True)
+
+        filler = result.facts[location_key(rows[1]["name"], rows[1]["address"])]
+        assert (filler.categories, filler.preference_matches, filler.rank, filler.distance_miles) == ([], [], None, None)
+
+        capped = result.facts[location_key(rows[2]["name"], rows[2]["address"])]
+        assert len(capped.categories) == 6 and all(len(c) == 80 for c in capped.categories)
 
     def test_rejects_wrong_count(self):
         result = parse_locations([l.model_dump() for l in MOCK_LOCATIONS[:9]])

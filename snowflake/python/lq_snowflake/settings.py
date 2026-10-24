@@ -1,6 +1,6 @@
 """Ranking and matching settings. Change RANKING_VERSION when any value changes."""
 
-RANKING_VERSION = "osm_hybrid_v5"
+RANKING_VERSION = "osm_hybrid_v6"
 
 # Score = W_SIM * preference match + W_DIST * closeness (1 at the start, 0 at the radius edge).
 W_SIM = 0.7
@@ -46,5 +46,13 @@ SEMANTIC_CAP = 0.85
 
 # Matches scoring below this produce no "related"/"closest" reason text.
 REASON_THRESHOLD = 0.7
+
+# OSM tags juice bars and boba shops as amenity=fast_food, so "fast food" alone would make them
+# matches for "food". A place whose tags include a drink-only cuisine and no food cuisine keeps
+# DRINK_ONLY_FOOD_FACTOR of its match for these interests (below REASON_THRESHOLD: no "food" reason).
+FOOD_INTERESTS = frozenset({"food", "restaurant", "meal", "lunch", "dinner", "eat"})
+DRINK_ONLY_TAGS = frozenset({"juice", "bubble tea", "tea", "coffee shop", "smoothie", "coffee"})
+GENERIC_FOOD_TAGS = frozenset({"fast food", "food court", "cafe", "restaurant"})
+DRINK_ONLY_FOOD_FACTOR = 0.4
 
 ATTRIBUTION = "© OpenStreetMap contributors (ODbL-1.0)"

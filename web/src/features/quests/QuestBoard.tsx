@@ -13,13 +13,21 @@ export interface QuestSummary {
   estimatedCost: number;
   totalTime: number | null;
   mock: boolean;
+  started: boolean;
+  done: boolean;
 }
 
 type Filter = "all" | "in-progress" | "done";
 
 function QuestCard({ quest }: { quest: QuestSummary }) {
   const total = quest.stopNames.length;
-  const done = quest.stopsDone === total;
+  const progress = quest.done
+    ? "Completed"
+    : !quest.started
+      ? "Not started"
+      : quest.stopsDone === total
+        ? "Ready to finish"
+        : `${quest.stopsDone} of ${total} stops`;
   return (
     <Link className="quest-card quest-card--link" href={`/quests/${quest.id}`}>
       <span className="quest-card__top">
@@ -28,7 +36,7 @@ function QuestCard({ quest }: { quest: QuestSummary }) {
       </span>
       <span className="quest-card__text">“{quest.request}”</span>
       <span className="quest-card__meta">
-        {done ? "Completed" : `${quest.stopsDone} of ${total} stops`} · est. ${quest.estimatedCost.toFixed(2)}
+        {progress} · est. ${quest.estimatedCost.toFixed(2)}
         {quest.totalTime ? ` · ~${quest.totalTime} min` : ""}
       </span>
       <span className="quest-card__bar" aria-hidden="true">

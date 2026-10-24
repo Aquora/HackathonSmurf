@@ -22,6 +22,8 @@ export interface QuestDocument {
   /** True when the API used mock data (DATA_PROVIDER/AI_PROVIDER=mock). */
   mock: boolean;
   createdAt: Date;
+  /** Set when the player presses "Start quest"; check-ins are accepted only after this. */
+  startedAt?: Date;
   completedAt?: Date;
 }
 
@@ -34,6 +36,7 @@ export interface QuestView {
   status: "active" | "done";
   mock: boolean;
   createdAt: Date;
+  startedAt: Date | null;
   completedAt: Date | null;
 }
 
@@ -61,6 +64,8 @@ function toView(doc: QuestDocument): QuestView {
     status: doc.status,
     mock: doc.mock,
     createdAt: doc.createdAt,
+    // Quests saved before "Start quest" existed count as started once they have a check-in.
+    startedAt: doc.startedAt ?? doc.checkIns.find((at): at is Date => at !== null) ?? null,
     completedAt: doc.completedAt ?? null,
   };
 }
@@ -95,10 +100,19 @@ export async function getQuest(userId: ObjectId, questId: string): Promise<Quest
   return doc ? toView(doc) : null;
 }
 
+/** Starts an active quest. Repeating it keeps the first start time. Returns false if it isn't this user's. */
+export async function startQuest(userId: ObjectId, questId: string): Promise<boolean> {
+  if (!ObjectId.isValid(questId)) return false;
+  const quests = await getQuestsCollection();
+  const _id = new ObjectId(questId);
+  await quests.updateOne({ _id, userId, status: "active", startedAt: { $exists: false } }, { $set: { startedAt: new Date() } });
+  return (await quests.countDocuments({ _id, userId })) === 1;
+}
+
 /**
- * Records a simulated check-in at one stop. Repeating it changes nothing: the filter only
- * matches while that stop has no check-in, so a stamp (and its XP) is counted once.
- * Returns false if the quest isn't this user's or the stop doesn't exist.
+ * Records a simulated check-in at one stop of a started, unfinished quest. Repeating it changes
+ * nothing: the filter only matches while that stop has no check-in, so a stamp (and its XP) is
+ * counted once. Returns false if the quest isn't this user's or the stop doesn't exist.
  */
 export async function checkInAtStop(userId: ObjectId, questId: string, stopIndex: number): Promise<boolean> {
   if (!ObjectId.isValid(questId) || !Number.isInteger(stopIndex) || stopIndex < 0 || stopIndex > 9) return false;
@@ -107,14 +121,28 @@ export async function checkInAtStop(userId: ObjectId, questId: string, stopIndex
   const doc = await quests.findOne({ _id, userId }, { projection: { checkIns: 1 } });
   if (!doc || stopIndex >= doc.checkIns.length) return false;
 
-  const now = new Date();
-  await quests.updateOne({ _id, userId, [`checkIns.${stopIndex}`]: null }, { $set: { [`checkIns.${stopIndex}`]: now } });
-  // Finish the quest once every stop has a check-in (also idempotent).
+  // Started = pressed "Start quest", or (for quests saved before that button) has a check-in.
+  const started = { $or: [{ startedAt: { $exists: true } }, { checkIns: { $elemMatch: { $ne: null } } }] };
+  const result = await quests.updateOne(
+    { _id, userId, status: "active", [`checkIns.${stopIndex}`]: null, ...started },
+    { $set: { [`checkIns.${stopIndex}`]: new Date() } },
+  );
+  return result.modifiedCount === 1;
+}
+
+/**
+ * Finishes a quest once every stop has a check-in. Idempotent: an already-finished quest keeps
+ * its completion time. Returns true when the quest is (now) done.
+ */
+export async function finishQuest(userId: ObjectId, questId: string): Promise<boolean> {
+  if (!ObjectId.isValid(questId)) return false;
+  const quests = await getQuestsCollection();
+  const _id = new ObjectId(questId);
   await quests.updateOne(
     { _id, userId, status: "active", checkIns: { $ne: null } }, // on an array: no element is null
-    { $set: { status: "done", completedAt: now } },
+    { $set: { status: "done", completedAt: new Date() } },
   );
-  return true;
+  return (await quests.countDocuments({ _id, userId, status: "done" })) === 1;
 }
 
 /** Removes a quest the player no longer wants. Only the owner can delete it. */

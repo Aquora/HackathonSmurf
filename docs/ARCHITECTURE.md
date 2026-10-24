@@ -344,6 +344,11 @@ fallbacks, latency targets, and release costs remain open.
 
 Implemented in `api/` at the product owner's request. Contract: `contracts/quest-api.md`.
 
+- **Driving only (2026-10-23, owner decision):** every quest is a driving route. The service sets
+  `travelMethod` to `drive` (`QUEST_TRAVEL_METHOD`) after normalization, so Snowflake searches the
+  drive radius and the planner plans car legs, even if the message asks to walk, bike or ride
+  transit. This supersedes the brief's walking-route framing.
+
 - **Stack:** Python 3.12+ (3.13 in Docker), FastAPI 0.162, pydantic 2, httpx,
   snowflake-connector-python 5, uvicorn, pytest. First built in TypeScript/Fastify, then
   switched to FastAPI at the owner's request the same day; behavior and contract unchanged.

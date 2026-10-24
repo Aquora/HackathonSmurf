@@ -28,6 +28,9 @@ class UserLocation(_Model):
 # Every quest starts and ends at Cal Poly Pomona; users cannot choose a different start.
 CAMPUS_LOCATION = UserLocation(address="3801 W Temple Ave, Pomona, CA 91768")
 
+# Every quest is planned for driving (owner decision, 2026-10-23); a requested walk/bike/transit is overridden.
+QUEST_TRAVEL_METHOD = "drive"
+
 
 class UserRequest(_Model):
     # Unknown fields (e.g. a legacy `location`) are ignored; the start is always CAMPUS_LOCATION.

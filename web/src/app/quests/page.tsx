@@ -19,6 +19,8 @@ function summarize(quest: QuestView): QuestSummary {
     estimatedCost: quest.route.estimatedCost,
     totalTime: quest.route.totalTime ?? null,
     mock: quest.mock,
+    started: quest.startedAt !== null,
+    done: quest.status === "done",
   };
 }
 

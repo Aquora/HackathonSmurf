@@ -97,5 +97,16 @@ Verified locally on 2026-10-23 in mock mode (MongoDB in Docker). Live Snowflake/
 earlier by the Snowflake owner but not re-run with this integration. Nothing is deployed.
 
 ## License
-Undecided. Select an application license before publishing as open source; track
-model, dependency, and data licenses separately.
+The application code is released under the [MIT License](LICENSE)
+(Copyright (c) 2026 Local Quest contributors).
+
+Models, data, and dependencies keep their own licenses; the MIT License does not cover them:
+
+| Component | Used for | License |
+|---|---|---|
+| Meta Llama 3.3 70B (`llama3.3-70b`, via Snowflake Cortex `AI_COMPLETE`) | Reading requests and planning routes | [Llama 3.3 Community License](https://www.llama.com/llama3_3/license/) (open weights; includes an acceptable use policy) |
+| Snowflake Arctic Embed M v1.5 (`snowflake-arctic-embed-m-v1.5`, via `AI_EMBED`) | Interest-to-category matching | Apache 2.0 |
+| OpenStreetMap place and address data | Candidate places, geocoding | [ODbL 1.0](https://opendatacommons.org/licenses/odbl/); show "© OpenStreetMap contributors" wherever the data appears |
+| npm and Python dependencies | Web app and API | Each package's own license (see `web/package-lock.json` and `api/pyproject.toml`) |
+
+Snowflake Cortex is a hosted, proprietary service; running the AI steps requires a Snowflake account.

@@ -64,7 +64,7 @@ travel method. Anything it can't find uses a default:
 | `desiredTime` (minutes) | `90` |
 | `desiredBudget` (US dollars) | `30` |
 | `locationPreference` | `"random"` |
-| `travelMethod` | `"drive"` (others: `"walk"`, `"bike"`, `"transit"`) |
+| `travelMethod` | Always `"drive"`: every quest is a driving route, so a requested walk, bike or transit is overridden |
 
 ### Returns: `200` — `QuestRoute`
 
@@ -229,7 +229,7 @@ suggest changes. `details.reason` says why, and `details.proven` says whether co
     "message": "No open candidate place has a known cost within your budget. Try a higher budget.",
     "requestId": "3bc41961f9c9408186d10b66aba2cf3d",
     "details": {
-      "preferences": { "desiredTime": 120, "desiredBudget": 2.0, "locationPreference": "coffee, art", "travelMethod": "walk" },
+      "preferences": { "desiredTime": 120, "desiredBudget": 2.0, "locationPreference": "coffee, art", "travelMethod": "drive" },
       "reason": "NONE_WITHIN_BUDGET",
       "proven": true
     }

@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
 import { BottomNav } from "@/components/BottomNav/BottomNav";
-import { checkIn, removeQuest } from "@/features/quests/actions";
+import { beginQuest, checkIn, completeQuest, removeQuest } from "@/features/quests/actions";
 import { getQuest } from "@/lib/quests";
 import "@/features/quests/quests.css";
 
@@ -22,6 +22,9 @@ export default async function QuestPage({ params }: { params: Promise<{ questId:
 
   const { route } = quest;
   const stopsDone = quest.checkIns.filter(Boolean).length;
+  const done = quest.status === "done";
+  const started = quest.startedAt !== null;
+  const allCheckedIn = stopsDone === route.quests.length;
 
   return (
     <main className="quests-page">
@@ -29,7 +32,7 @@ export default async function QuestPage({ params }: { params: Promise<{ questId:
         <div className="quest-banner__inner">
           <div className="quest-banner__heading-row">
             <h1 className="quest-banner__heading" id="quest-heading">
-              {quest.status === "done" ? "Quest complete!" : "Your quest"}
+              {done ? "Quest complete!" : started ? "Quest in progress" : "Your quest"}
             </h1>
             {quest.mock && <span className="quest-banner__level">DEMO</span>}
           </div>
@@ -65,6 +68,16 @@ export default async function QuestPage({ params }: { params: Promise<{ questId:
           </p>
         )}
 
+        {!started && !done && (
+          <form action={beginQuest} className="quest-action">
+            <input type="hidden" name="questId" value={quest.id} />
+            <button type="submit" className="new-quest__submit quest-action__button">
+              Start quest
+            </button>
+            <p className="quest-note__text">Head to the start, press Start, then check in at each stop.</p>
+          </form>
+        )}
+
         <ol className="quest-route" aria-label="Route">
           <li className="quest-route__point">
             <span className="quest-route__marker">Start</span>
@@ -76,7 +89,7 @@ export default async function QuestPage({ params }: { params: Promise<{ questId:
             return (
               <li key={i} className={`quest-stop${checkedInAt ? " quest-stop--done" : ""}`}>
                 <p className="quest-stop__travel">
-                  {stop.travelDistance.toFixed(1)} mi from the previous point
+                  {stop.travelDistance.toFixed(1)} mi drive from the previous point
                 </p>
                 <div className="quest-card">
                   <div className="quest-card__top">
@@ -96,6 +109,8 @@ export default async function QuestPage({ params }: { params: Promise<{ questId:
                   </p>
                   {checkedInAt ? (
                     <p className="quest-stop__checked">Checked in (simulated)</p>
+                  ) : !started || done ? (
+                    <p className="quest-stop__checked">{done ? "Not checked in" : "Start the quest to check in"}</p>
                   ) : (
                     <form action={checkIn}>
                       <input type="hidden" name="questId" value={quest.id} />
@@ -115,6 +130,23 @@ export default async function QuestPage({ params }: { params: Promise<{ questId:
             <span>{route.endLocation.address}</span>
           </li>
         </ol>
+
+        {started && !done && (
+          <form action={completeQuest} className="quest-action">
+            <input type="hidden" name="questId" value={quest.id} />
+            <button type="submit" className="new-quest__submit quest-action__button" disabled={!allCheckedIn}>
+              Finish quest
+            </button>
+            <p className="quest-note__text">
+              {allCheckedIn
+                ? "Every stop is stamped. Finish to collect your XP."
+                : `Check in at ${route.quests.length - stopsDone} more ${route.quests.length - stopsDone === 1 ? "stop" : "stops"} to finish.`}
+            </p>
+          </form>
+        )}
+        {done && quest.completedAt && (
+          <p className="quest-note__text">Finished {quest.completedAt.toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}.</p>
+        )}
 
         <p className="quest-note__text">
           {route.totalTime ? `About ${route.totalTime} min` : "Time not estimated"}

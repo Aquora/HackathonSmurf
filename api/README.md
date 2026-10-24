@@ -43,8 +43,7 @@ Requires Python 3.12+. Try it:
 
 ```bash
 curl -s -X POST localhost:8080/v1/quests -H 'content-type: application/json' \
-  -d '{"message":"2 hours, $25, coffee and art, walking"}'   # starts at DEFAULT_START_ADDRESS
-  -d '{"message":"2 hours, $25, coffee and art, walking"}'
+  -d '{"message":"2 hours, $25, coffee and art"}'   # starts at Cal Poly Pomona; always planned for driving
 ```
 
 ## Configuration
