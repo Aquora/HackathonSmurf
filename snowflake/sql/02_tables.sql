@@ -17,8 +17,17 @@ CREATE TABLE IF NOT EXISTS PLACE (
     address            STRING,
     website            STRING,
     opening_hours_raw  STRING,
-    snapshot_date      DATE NOT NULL
+    snapshot_date      DATE NOT NULL,
+    brand              STRING,                        -- OSM brand tag, e.g. 'Starbucks'
+    brand_wikidata     STRING,                        -- OSM brand:wikidata, e.g. 'Q37158'
+    is_chain           BOOLEAN,                       -- set by sql/04_load.sql
+    chain_reason       STRING                         -- why: brand_tag | brand_name | repeated_name
 );
+-- Columns added after the first deployment (no-op on new tables).
+ALTER TABLE PLACE ADD COLUMN IF NOT EXISTS brand STRING;
+ALTER TABLE PLACE ADD COLUMN IF NOT EXISTS brand_wikidata STRING;
+ALTER TABLE PLACE ADD COLUMN IF NOT EXISTS is_chain BOOLEAN;
+ALTER TABLE PLACE ADD COLUMN IF NOT EXISTS chain_reason STRING;
 
 -- Parsed weekly hours; places with unparseable hours have no rows and are never returned.
 -- Minutes from local midnight; close may exceed 1440 for overnight; day 0 = Monday.

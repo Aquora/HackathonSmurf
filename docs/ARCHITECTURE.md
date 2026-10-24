@@ -432,3 +432,7 @@ Implemented in `api/` at the product owner's request. Contract: `contracts/quest
 - Player progress (XP 10 per check-in + 50 per finished quest, 100 XP per level, day streak in
   America/Los_Angeles, four profile badges) is computed from saved check-ins in `web/src/lib/progress.ts`.
   It is player-facing only, not merchant metrics; Snowflake analytics/event export is not built.
+- 2026-10-23: Snowflake `PLACE` gains `brand`, `brand_wikidata`, `is_chain`, `chain_reason`
+  (OSM brand tags, then brand-name match, then repeated name). Labeling only; no override table and no
+  filtering in `FIND_QUEST_LOCATIONS` yet. Rule-based because the dataset is small and has no labels.
+  Not yet reloaded on the Snowflake account.

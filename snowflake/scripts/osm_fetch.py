@@ -78,6 +78,9 @@ def to_records(payload):
             "address": address(tags),
             "website": tags.get("website") or tags.get("contact:website"),
             "opening_hours": tags.get("opening_hours"),
+            # Chain markers from OSM's name-suggestion-index tagging; used to flag chains.
+            "brand": tags.get("brand"),
+            "brand_wikidata": tags.get("brand:wikidata"),
             "snapshot_date": snapshot,
         }
 
