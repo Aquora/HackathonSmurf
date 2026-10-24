@@ -10,7 +10,7 @@ import "./LandingPage.css";
 
 // Hero art is laid out in Figma coordinates (440 wide, measured from below the header).
 const HERO_DESIGN_WIDTH = 440;
-const HERO_DESIGN_HEIGHT = 348;
+const HERO_DESIGN_HEIGHT = 388;
 
 const HERO_COINS = [
   { left: 304, top: 70 },

@@ -83,6 +83,12 @@ export async function getPlayerSummary(id: ObjectId): Promise<PlayerSummary | nu
   return user ? toSummary(user) : null;
 }
 
+/** True only when the two players have an accepted friendship (pending requests don't count). */
+export async function areFriends(a: ObjectId, b: ObjectId): Promise<boolean> {
+  const friendships = await getFriendshipsCollection();
+  return (await friendships.countDocuments({ pairKey: pairKey(a, b), status: "accepted" }, { limit: 1 })) > 0;
+}
+
 /** Accepted friends plus pending requests in both directions for one player. */
 export async function getFriendsOverview(userId: ObjectId): Promise<FriendsOverview> {
   const friendships = await getFriendshipsCollection();
@@ -116,4 +122,36 @@ export function initials(name: string) {
     .filter(Boolean)
     .map((word) => word[0]);
   return (letters.length > 1 ? letters[0] + letters[letters.length - 1] : name.slice(0, 2)).toUpperCase();
+}
+
+export type Relationship =
+  | { kind: "self" }
+  | { kind: "none" }
+  | { kind: "friends" }
+  /** You sent them a request. */
+  | { kind: "outgoing"; requestId: string }
+  /** They sent you a request. */
+  | { kind: "incoming"; requestId: string };
+
+/** How `viewer` relates to `other`. Decides whether `viewer` may see `other`'s stats. */
+export async function getRelationship(viewer: ObjectId, other: ObjectId): Promise<Relationship> {
+  if (viewer.equals(other)) return { kind: "self" };
+  const doc = await (await getFriendshipsCollection()).findOne({ pairKey: pairKey(viewer, other) });
+  if (!doc) return { kind: "none" };
+  if (doc.status === "accepted") return { kind: "friends" };
+  const requestId = doc._id.toHexString();
+  return doc.requesterId.equals(viewer) ? { kind: "outgoing", requestId } : { kind: "incoming", requestId };
+}
+
+export async function countFriends(userId: ObjectId): Promise<number> {
+  return (await getFriendshipsCollection()).countDocuments({
+    $or: [{ requesterId: userId }, { recipientId: userId }],
+    status: "accepted",
+  });
+}
+
+/** Ends an accepted friendship. Either friend can do this; nobody else matches the pair key. */
+export async function removeFriendship(me: ObjectId, other: ObjectId): Promise<boolean> {
+  const result = await (await getFriendshipsCollection()).deleteOne({ pairKey: pairKey(me, other), status: "accepted" });
+  return result.deletedCount === 1;
 }

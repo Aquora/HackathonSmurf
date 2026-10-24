@@ -156,3 +156,7 @@ actual results, assumptions, and remaining issues. Lead maintains this plan.
   `drive` after normalizing, so Snowflake uses the drive radius and the planner writes "drive to";
   web copy updated. Prompt version 2026-10-23.4. 99 API tests pass; live check with "walking" in the
   message returned a drive route.
+- [x] 2026-10-23: Friend player cards (branch `friend-profiles`): `/friends/[userId]`
+  shows a friend's Figma player card with stats and badges (friends only), friend count on
+  cards, and remove friend. Friend cards use the same quest-based progress as `/profile`.
+  Unit and Playwright tests pass against a disposable in-memory MongoDB; not deployed.

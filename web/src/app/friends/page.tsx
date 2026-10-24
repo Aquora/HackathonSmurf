@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
@@ -11,9 +12,9 @@ import "@/features/friends/friends.css";
 
 export const metadata: Metadata = { title: "Friends · Local Quest" };
 
-function PlayerRow({ player, children }: { player: PlayerSummary; children?: ReactNode }) {
-  return (
-    <li className="friend-row">
+function PlayerRow({ player, href, children }: { player: PlayerSummary; href?: string; children?: ReactNode }) {
+  const details = (
+    <>
       <span className="friend-row__avatar" aria-hidden="true">
         {initials(player.name)}
       </span>
@@ -21,6 +22,17 @@ function PlayerRow({ player, children }: { player: PlayerSummary; children?: Rea
         <span className="friend-row__name">{player.name}</span>
         {player.username && <span className="friend-row__handle">@{player.username}</span>}
       </span>
+    </>
+  );
+  return (
+    <li className="friend-row">
+      {href ? (
+        <Link className="friend-row__link" href={href}>
+          {details}
+        </Link>
+      ) : (
+        details
+      )}
       {children && <span className="friend-row__actions">{children}</span>}
     </li>
   );
@@ -80,7 +92,7 @@ export default async function FriendsPage() {
           {friends.length > 0 ? (
             <ul className="friend-list">
               {friends.map((player) => (
-                <PlayerRow key={player.id} player={player} />
+                <PlayerRow key={player.id} player={player} href={`/friends/${player.id}`} />
               ))}
             </ul>
           ) : (

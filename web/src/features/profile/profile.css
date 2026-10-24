@@ -436,3 +436,17 @@
   text-align: right;
   color: var(--color-ink);
 }
+
+/* "← Back to friends" on a friend's player card. */
+.player-banner__back {
+  align-self: flex-start;
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--pixel-light);
+}
+
+.player-banner__back:focus-visible {
+  outline: 3px solid var(--color-gold);
+  outline-offset: 2px;
+}

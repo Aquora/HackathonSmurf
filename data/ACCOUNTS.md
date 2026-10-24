@@ -24,6 +24,8 @@ adapter defaults.
 A pair of players has at most one `friendships` document. Declining or cancelling a request
 deletes it; sending a request to someone who already sent you one accepts theirs. Players are
 found by exact username or exact name (case-insensitive), never by partial match.
+Accepted friends can view each other's player card (name, username, join month, picture,
+level/XP, stats, badges, and the names of completed quest stops); pending requests grant nothing.
 
 `users.avatarUpdatedAt` is set while an uploaded picture exists. The profile shows the
 uploaded picture first, then the Google account photo (`users.image`), then the default
